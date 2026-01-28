@@ -1,6 +1,6 @@
 # --- OpenAI settings ---
 EMBED_MODEL: str = "text-embedding-3-large"
-EMBED_DIMS: int = 3072
+EMBED_DIM: int = 3072
 MODEL_NAME: str = "gpt-4o-mini"
 
 # --- Chunking settings ---
