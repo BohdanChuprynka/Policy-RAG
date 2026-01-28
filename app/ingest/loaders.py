@@ -7,7 +7,7 @@ from llama_index.core.node_parser import SentenceSplitter
 
 from config import CHUNK_SIZE, CHUNK_OVERLAP, MIN_CHUNK_CHARS
 from models import Chunk
-from utils.text import normalize_whitespace
+from utils.text import normalize_whitespace, remove_boilerplate
 
 
 splitter = SentenceSplitter(
@@ -73,10 +73,17 @@ def load_and_chunk_pdf(file_path: str, doc_name: Optional[str] = None) -> List[C
     base_doc_name = doc_name or os.path.basename(file_path)
 
     chunks: List[Chunk] = []
+    to_chunk = {
+        "text": [],
+        "doc_name": [], 
+        "page": [],
+    }
     for d in docs:
         text = getattr(d, "text", None)
         if not text:
             continue
+
+        # TODO: Function that removes boilerplate from text
 
         md = getattr(d, "metadata", None) or {}
         if not isinstance(md, dict):
@@ -90,7 +97,16 @@ def load_and_chunk_pdf(file_path: str, doc_name: Optional[str] = None) -> List[C
         if not doc_name and isinstance(md_doc_name, str) and md_doc_name.strip():
             effective_doc_name = md_doc_name.strip()
 
-        text_chunks = splitter.split_text(text)
+        # TODO: Change logic to allow removing_repeated_text function to work more cleanly. extract text from all pdf, then chunk it? 
+        to_chunk["text"].append(text)
+        to_chunk["doc_name"].append(effective_doc_name)
+        to_chunk["page"].append(page_int)
+        
+    # Boilerplate Removal 
+    to_chunk["text"] = remove_boilerplate(to_chunk["text"])
+
+    for t, n, p in zip(to_chunk["text"], to_chunk["doc_name"], to_chunk["page"]):
+        text_chunks = splitter.split_text(t)
         for c in text_chunks:
             c = normalize_whitespace(c)
             if not c:
@@ -102,9 +118,10 @@ def load_and_chunk_pdf(file_path: str, doc_name: Optional[str] = None) -> List[C
                 Chunk(
                     chunk_id=str(uuid.uuid4()),
                     text=c,
-                    doc_name=effective_doc_name,
-                    page=page_int,
+                    doc_name=n,
+                    page=p,
                 )
             )
+
 
     return chunks
