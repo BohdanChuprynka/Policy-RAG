@@ -7,23 +7,21 @@ from collections import Counter
 
 
 def normalize_whitespace(text: str) -> str:
-      return re.sub(r'\s+', ' ', text.strip())
+    return re.sub(r"\s+", " ", text.strip())
 
 def lowercase(text: str) -> str:
-      return text.lower()
+    return text.lower()
 
-# TODO: Define a simple regex-based tokenizer pattern
-# - Keep it basic: letters/numbers only, lowercased
-      
+# def tokenizer(s: str) -> List[str]:
+#     """Simple whitespace tokenizer.
 
-# TODO: Write tokenize(text: str) -> List[str]
-# - normalize to lowercase
-# - return list of tokens using your regex pattern
+#     Note: callers that need normalized comparison should use `_normalize_token`.
+#     """
+#     return _simple_tokenize(s)
 
 def batch_items(items: List[str], batch_size: int) -> Iterable[List[str]]:
-      for i in range(0, len(items), batch_size):
-            yield items[i:i+batch_size]
-
+    for i in range(0, len(items), batch_size):
+        yield items[i:i+batch_size]
 
 
 # --------- Below goes boilerplate related code --------- 
@@ -33,6 +31,11 @@ def _simple_tokenize(s: str) -> List[str]:
 def _simple_detokenize(tokens: List[str]) -> str:
     return " ".join(tokens)
 
+def unicode_normalize(s: str) -> str:
+    return unicodedata.normalize("NFKC", s)
+
+_NUM_RE = re.compile(r"^\d+([.,]\d+)?$")
+
 def _normalize_token(tok: str) -> str:
     """
     Normalization for *comparison only*:
@@ -41,9 +44,10 @@ def _normalize_token(tok: str) -> str:
     - strip leading/trailing punctuation
     - map pure numbers -> <NUM>
     """
-    _NUM_RE = re.compile(r"^\d+([.,]\d+)?$")
 
-    t = unicodedata.normalize("NFKC", tok).lower()
+    t = tok.lower()
+    # If you normalize unicode in loaders, you can keep this off; otherwise enable it.
+    # t = unicode_normalize(t)
     t = t.replace("’", "'").replace("“", '"').replace("”", '"')
     t = t.strip(".,;:!?()[]{}<>|/\\")
     if not t:

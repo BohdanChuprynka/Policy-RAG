@@ -7,7 +7,7 @@ from llama_index.core.node_parser import SentenceSplitter
 
 from config import CHUNK_SIZE, CHUNK_OVERLAP, MIN_CHUNK_CHARS
 from models import Chunk
-from utils.text import normalize_whitespace, remove_boilerplate
+from utils.text import normalize_whitespace, remove_boilerplate, unicode_normalize
 
 
 splitter = SentenceSplitter(
@@ -83,9 +83,7 @@ def load_and_chunk_pdf(file_path: str, doc_name: Optional[str] = None) -> List[C
         if not text:
             continue
 
-        # TODO: Function that removes boilerplate from text
-
-        md = getattr(d, "metadata", None) or {}
+        md = getattr(d, "metadata", None)
         if not isinstance(md, dict):
             md = {}
 
@@ -97,7 +95,10 @@ def load_and_chunk_pdf(file_path: str, doc_name: Optional[str] = None) -> List[C
         if not doc_name and isinstance(md_doc_name, str) and md_doc_name.strip():
             effective_doc_name = md_doc_name.strip()
 
-        # TODO: Change logic to allow removing_repeated_text function to work more cleanly. extract text from all pdf, then chunk it? 
+        # Some text cleaning 
+        text = unicode_normalize(text)
+        text = normalize_whitespace(text)
+
         to_chunk["text"].append(text)
         to_chunk["doc_name"].append(effective_doc_name)
         to_chunk["page"].append(page_int)
