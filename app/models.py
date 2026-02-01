@@ -13,12 +13,6 @@ class Chunk(BaseModel):
       
 class DenseIndexMeta(BaseModel):
       chunk_ids: List[str]
-
-# TODO: Create LexicalIndex model:
-# - tokenized_docs: List[List[str]]   (tokens per chunk)
-# - doc_freq: Dict[str, int]          (token -> doc frequency)
-# - avgdl: float                      (average doc length)
-# - chunk_ids: List[str]
 class LexicalIndex(BaseModel): 
       tokenized_docs: List[List[str]]
       doc_freq: Dict[str, int]
@@ -28,6 +22,9 @@ class LexicalIndex(BaseModel):
 # TODO: Create RetrievalHit model:
 # - chunk_id: str
 # - score: float
+class RetrievalHit(BaseModel):
+      chunk_id: str 
+      score: float
 
 # (Later, for generation)
 # TODO: Create SourceRef model:

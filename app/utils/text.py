@@ -12,13 +12,6 @@ def normalize_whitespace(text: str) -> str:
 def lowercase(text: str) -> str:
     return text.lower()
 
-# def tokenizer(s: str) -> List[str]:
-#     """Simple whitespace tokenizer.
-
-#     Note: callers that need normalized comparison should use `_normalize_token`.
-#     """
-#     return _simple_tokenize(s)
-
 def batch_items(items: List[str], batch_size: int) -> Iterable[List[str]]:
     for i in range(0, len(items), batch_size):
         yield items[i:i+batch_size]
