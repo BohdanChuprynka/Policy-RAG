@@ -10,10 +10,6 @@ load_dotenv()
 
 client = OpenAI()
 
-
-from typing import List
-import numpy as np
-
 def embed_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
     if not texts:
         return np.zeros((0, EMBED_DIM), dtype=np.float32)
@@ -42,8 +38,31 @@ def embed_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
 
     return arr
 
-# TODO: Implement l2_normalize(mat: np.ndarray) -> np.ndarray
-# - normalize each row vector
-# - avoid division by zero
 def l2_normalize(mat: np.ndarray) -> np.ndarray:
-    pass
+    if mat.size == 0:
+        return mat
+
+    arr = np.asarray(mat)
+
+    if arr.ndim == 1:
+        norm = np.linalg.norm(arr)
+        if norm == 0 or not np.isfinite(norm):
+            return np.zeros_like(arr)
+        return (arr / norm).astype(arr.dtype, copy=False)
+
+    if arr.ndim != 2:
+        raise ValueError(f"l2_normalize expects a 1D or 2D array, got shape {arr.shape}.")
+
+    norms = np.linalg.norm(arr, axis=1, keepdims=True)
+
+    # Protect against division by zero and non-finite norms.
+    safe_norms = np.where((norms > 0) & np.isfinite(norms), norms, 1.0)
+    out = arr / safe_norms
+
+    # Zero-out rows that had invalid norms (0 or non-finite).
+    invalid_rows = ~((norms > 0) & np.isfinite(norms))
+    if np.any(invalid_rows):
+        out = out.copy()
+        out[invalid_rows[:, 0]] = 0.0
+
+    return out.astype(arr.dtype, copy=False)

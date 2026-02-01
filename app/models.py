@@ -10,10 +10,7 @@ class Chunk(BaseModel):
       doc_name: str
       page: Optional[int]
       
-
-# TODO: Create DenseIndexMeta model:
-# - chunk_ids: List[str]
-# (Note: vectors are NOT stored here; keep vectors as numpy array elsewhere)
+      
 class DenseIndexMeta(BaseModel):
       chunk_ids: List[str]
 
@@ -22,6 +19,11 @@ class DenseIndexMeta(BaseModel):
 # - doc_freq: Dict[str, int]          (token -> doc frequency)
 # - avgdl: float                      (average doc length)
 # - chunk_ids: List[str]
+class LexicalIndex(BaseModel): 
+      tokenized_docs: List[List[str]]
+      doc_freq: Dict[str, int]
+      avg_doc_length: float 
+      chunk_ids: List[str]
 
 # TODO: Create RetrievalHit model:
 # - chunk_id: str

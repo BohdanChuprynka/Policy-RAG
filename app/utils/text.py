@@ -25,10 +25,10 @@ def batch_items(items: List[str], batch_size: int) -> Iterable[List[str]]:
 
 
 # --------- Below goes boilerplate related code --------- 
-def _simple_tokenize(s: str) -> List[str]:
+def tokenize(s: str) -> List[str]:
     return s.split()
 
-def _simple_detokenize(tokens: List[str]) -> str:
+def detokenize(tokens: List[str]) -> str:
     return " ".join(tokens)
 
 def unicode_normalize(s: str) -> str:
@@ -57,7 +57,7 @@ def _normalize_token(tok: str) -> str:
     return t
 
 def _tokenize_with_norm(s: str) -> Tuple[List[str], List[str]]:
-    orig = _simple_tokenize(s)
+    orig = tokenize(s)
     norm = [_normalize_token(t) for t in orig]
     return orig, norm
 
@@ -236,4 +236,4 @@ def remove_boilerplate(texts: List[str]) -> List[str]:
         out.append(o2)
         prev_norm = n2
 
-    return [_simple_detokenize(o) for o in out]
+    return [detokenize(o) for o in out]

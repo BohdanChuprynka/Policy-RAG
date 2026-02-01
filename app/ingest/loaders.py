@@ -38,29 +38,50 @@ def load_seed_policy_txt(path: str) -> List[Chunk]:
     if not os.path.exists(path):
         return []
 
-    with open(path, "r", encoding="utf-8") as f:
-        text = f.read()
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return []
 
+    base_doc_name = os.path.basename(path)
+
+    to_chunk = {
+        "text": [],
+        "doc_name": [],
+        "page": [],
+    }
+
+    # Some text cleaning (keep consistent with PDF ingestion)
+    text = unicode_normalize(text)
     text = normalize_whitespace(text)
 
-    text_chunks = splitter.split_text(text)
+    if text:
+        to_chunk["text"].append(text)
+        to_chunk["doc_name"].append(base_doc_name)
+        to_chunk["page"].append(None)
+
+    # Boilerplate Removal (works on a list; safe even for a single doc)
+    to_chunk["text"] = remove_boilerplate(to_chunk["text"])
 
     chunks: List[Chunk] = []
-    for c in text_chunks:
-        c = normalize_whitespace(c)
-        if not c:
-            continue
-        if len(c) < MIN_CHUNK_CHARS:
-            continue
+    for t, n, p in zip(to_chunk["text"], to_chunk["doc_name"], to_chunk["page"]):
+        text_chunks = splitter.split_text(t)
+        for c in text_chunks:
+            c = normalize_whitespace(c)
+            if not c:
+                continue
+            if len(c) < MIN_CHUNK_CHARS:
+                continue
 
-        chunks.append(
-            Chunk(
-                chunk_id=str(uuid.uuid4()),
-                text=c,
-                doc_name=os.path.basename(path),
-                page=None,
+            chunks.append(
+                Chunk(
+                    chunk_id=str(uuid.uuid4()),
+                    text=c,
+                    doc_name=n,
+                    page=p,
+                )
             )
-        )
 
     return chunks
 
