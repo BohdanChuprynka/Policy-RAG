@@ -3,7 +3,6 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel
 
 
-
 class Chunk(BaseModel):
       chunk_id: str
       text: str
@@ -19,9 +18,6 @@ class LexicalIndex(BaseModel):
       avg_doc_length: float 
       chunk_ids: List[str]
 
-# TODO: Create RetrievalHit model:
-# - chunk_id: str
-# - score: float
 class RetrievalHit(BaseModel):
       chunk_id: str 
       score: float
