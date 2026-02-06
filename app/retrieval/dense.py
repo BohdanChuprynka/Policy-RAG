@@ -1,14 +1,3 @@
-"""
-retrieval/dense.py
-
-Goal:
-- Retrieve most relevant chunks using dense vectors (cosine similarity).
-
-Learning focus:
-- How query embeddings are used.
-- Why normalized vectors make cosine similarity == dot product.
-"""
-
 from typing import List
 import numpy as np
 

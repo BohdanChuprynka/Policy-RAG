@@ -9,7 +9,6 @@ class Chunk(BaseModel):
       doc_name: str
       page: Optional[int]
       
-      
 class DenseIndexMeta(BaseModel):
       chunk_ids: List[str]
 class LexicalIndex(BaseModel): 
@@ -22,13 +21,12 @@ class RetrievalHit(BaseModel):
       chunk_id: str 
       score: float
 
-# (Later, for generation)
-# TODO: Create SourceRef model:
-# - doc_name: str
-# - page: Optional[int]
-# - snippet: str
+class SourceRef(BaseModel): 
+      doc_name: str
+      page: Optional[int] 
+      snippet: str
 
-# TODO: Create QueryResult model:
-# - answer: str
-# - sources: List[SourceRef]
-# - num_contexts: int
+class QueryResult(BaseModel): 
+      answer: str 
+      sources: List[SourceRef] 
+      num_contexts: int
