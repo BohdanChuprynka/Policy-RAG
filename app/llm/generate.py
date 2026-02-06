@@ -19,13 +19,6 @@ def make_context(chunks: List[Chunk]) -> str:
         return "NO EVIDENCE PROVIDED."
 
     parts: List[str] = []
-    parts.append(
-        "You are given policy excerpts as evidence.\n"
-        "Use ONLY this evidence to answer.\n"
-        "Cite sources using bracket numbers like [1] or [1][2].\n"
-        "If the answer is not in the evidence, say: Not found in provided policies.\n"
-    )
-
     for i, c in enumerate(chunks, start=1):
         page = c.page if c.page is not None else "unknown"
         parts.append(
@@ -85,7 +78,7 @@ def answer_question(question: str, evidence: List[Chunk]) -> QueryResult:
         idx = n - 1
         if 0 <= idx < len(evidence):
             c = evidence[idx]
-            snippet = c.text[:240]  # small snippet for UI/logging
+            snippet = c.text[:240] # for logging purposes
             sources.append(SourceRef(doc_name=c.doc_name, page=c.page, snippet=snippet))
 
     return QueryResult(answer=answer, sources=sources)

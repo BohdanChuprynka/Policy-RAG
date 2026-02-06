@@ -26,6 +26,7 @@ class SourceRef(BaseModel):
       page: Optional[int] 
       snippet: str
 
+
 class QueryResult(BaseModel): 
       answer: str 
       sources: List[SourceRef] 
