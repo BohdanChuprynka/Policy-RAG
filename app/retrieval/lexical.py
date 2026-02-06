@@ -1,76 +1,52 @@
-"""
-retrieval/lexical.py
-
-Goal:
-- Retrieve candidate chunks using lexical similarity (BM25-like scoring).
-
-Learning focus:
-- What BM25 is doing conceptually:
-  term frequency + inverse document frequency + length normalization
-- Why lexical retrieval catches exact terms that embeddings may miss.
-"""
-
-from typing import List, Dict
+from collections import Counter
+from typing import List
 import math
 
 from models import LexicalIndex, RetrievalHit
 from utils.text import tokenize
 
-# TODO: Implement bm25_score(...)
-# Guidance:
-# - compute term frequencies for the document tokens
-# - compute an IDF term using doc_freq and total number of docs
-# - apply BM25 formula components (k1, b, length normalization)
-# - return a float score
-
-def term_freq(t: str, doc_tokens: List[str]) -> float:
-    return doc_tokens.count(t)
-
 def bm25_score(query_tokens: List[str], doc_tokens: List[str], index: LexicalIndex) -> float:
-    term_frequencies = {t: term_freq(t, doc_tokens) for t in query_tokens}
+    if not query_tokens or not doc_tokens:
+        return 0.0
 
-    # Get the total number of docs 
     N = len(index.tokenized_docs)
+    if N == 0:
+        return 0.0
 
-    # Build our numerator for IDF 
-    numerator = N - index.doc_freq[query_tokens[0]] + 0.5
-    # Build our denominator for IDF 
-    denominator = index.doc_freq[query_tokens[0]] + 0.5
-    # Compute our IDF 
+    avgdl = index.avg_doc_length  
+    if not avgdl or avgdl <= 0:
+        avgdl = 1.0 
 
-    idf = math.log(numerator / denominator)
-
-    # Apply Bm25 Formula 
-    k = 1.2
+    k1 = 1.2
     b = 0.75
+    dl = len(doc_tokens)
 
-    score = 0
-    for t, tf in term_frequencies.items():
-        score += idf * (tf * (k + 1)) / (tf + k * (1 - b + b * len(doc_tokens) / index.avg_doc_length))
+    tf_counter = Counter(doc_tokens)
+
+    score = 0.0
+    for t in set(query_tokens):  
+        tf = tf_counter.get(t, 0)
+        if tf == 0:
+            continue
+
+        df = index.doc_freq.get(t, 0)
+
+        idf = math.log(1.0 + (N - df + 0.5) / (df + 0.5))
+
+        denom = tf + k1 * (1 - b + b * (dl / avgdl))
+        score += idf * (tf * (k1 + 1)) / denom
 
     return score
 
 
-
-
-     
-# TODO: Implement lexical_retrieve(question: str, lex: LexicalIndex, top_m: int) -> List[RetrievalHit]
-# Steps:
-# 1) tokenize question
-# 2) score every chunk using bm25_score (yes, brute force for MVP)
-# 3) keep only scores > 0
-# 4) return top_m hits sorted descending
-#
-# Note:
-# - This is not optimized; that's okay for learning and small documents.
 def lexical_retrieve(question: str, lex: LexicalIndex, top_m: int) -> List[RetrievalHit]:
-  tokenized = tokenize(question)
+    q_tokens = tokenize(question)
+    hits: List[RetrievalHit] = []
 
-  scores = {chunk_id: bm25_score(tokenized, lex.tokenized_docs[i], lex) for i, chunk_id in enumerate(lex.chunk_ids)}
-  scores = {k: v for k, v in scores.items() if v > 0}
+    for i, chunk_id in enumerate(lex.chunk_ids):
+        s = bm25_score(q_tokens, lex.tokenized_docs[i], lex)
+        if s > 0:
+            hits.append(RetrievalHit(chunk_id=chunk_id, score=s))
 
-  return sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_m]
-
-
-  
-    
+    hits.sort(key=lambda h: h.score, reverse=True)
+    return hits[:top_m]
