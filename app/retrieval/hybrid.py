@@ -52,3 +52,5 @@ def hybrid_merge(
 
     fused.sort(key=lambda h: h.score, reverse=True)
     return fused[:top_k]
+
+# TODO: rank-based_normalization

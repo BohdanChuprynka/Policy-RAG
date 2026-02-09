@@ -22,7 +22,6 @@ def build_dense_index(chunks: List[Chunk]) -> Tuple[np.ndarray, DenseIndexMeta]:
     meta = DenseIndexMeta(chunk_ids=[c.chunk_id for c in chunks])
     return (norm_embeds, meta)
 
-
 def build_lexical_index(chunks: List[Chunk]) -> LexicalIndex:
     tokenized_docs = [tokenize(c.text) for c in chunks]
 
