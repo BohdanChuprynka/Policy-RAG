@@ -2,10 +2,10 @@ from typing import List, Dict, Tuple
 import numpy as np
 from collections import Counter
 
-from config import EMBED_DIM
-from models import Chunk, DenseIndexMeta, LexicalIndex
-from llm.embedding import embed_texts, l2_normalize
-from utils.text import tokenize
+from app.config import EMBED_DIM
+from app.models import Chunk, DenseIndexMeta, LexicalIndex
+from app.llm.embedding import embed_texts, l2_normalize
+from app.utils.text import tokenize
 
 
 def make_chunk_lookup(chunks: List[Chunk]) -> Dict[str, Chunk]:

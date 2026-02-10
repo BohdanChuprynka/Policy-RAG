@@ -1,5 +1,7 @@
 from typing import List, Dict
-from models import RetrievalHit
+
+from app.models import RetrievalHit
+from app.config import HYBRID_TOPK, ALPHA
 
 
 def score_normalizer(hits: List[RetrievalHit]) -> List[RetrievalHit]:
@@ -23,12 +25,11 @@ def score_normalizer(hits: List[RetrievalHit]) -> List[RetrievalHit]:
         for h in hits
     ]
 
-
 def hybrid_merge(
     dense_hits: List[RetrievalHit],
     lex_hits: List[RetrievalHit],
-    alpha: float,
-    top_k: int,
+    alpha: ALPHA,
+    top_k: HYBRID_TOPK,
 ) -> List[RetrievalHit]:
     """
     Weighted fusion after per-retriever normalization:

@@ -3,8 +3,8 @@ import re
 
 from openai import OpenAI
 
-from config import MODEL_NAME
-from models import Chunk, QueryResult, SourceRef
+from app.config import MODEL_NAME, SYSTEM_PROMPT, MAX_TOKENS
+from app.models import Chunk, QueryResult, SourceRef
 
 client = OpenAI()
 
@@ -46,24 +46,15 @@ def _extract_cited_source_numbers(answer: str) -> List[int]:
 def answer_question(question: str, evidence: List[Chunk]) -> QueryResult:
     context = make_context(evidence)
 
-    system_prompt = (
-        "You are a policy assistant.\n"
-        "Rules:\n"
-        "1) Answer ONLY using the evidence provided.\n"
-        '2) If the evidence does not contain the answer, reply exactly: "Not found in provided policies."\n'
-        "3) When you make a claim, cite the supporting evidence using bracketed source numbers like [1] or [1][3].\n"
-        "4) Do not invent citations.\n"
-    )
-
     user_prompt = f"Question:\n{question}\n\nEvidence:\n{context}"
 
     resp = client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
         ],
-        max_tokens=700,
+        max_tokens=MAX_TOKENS,
     )
 
     answer = (resp.choices[0].message.content or "").strip()
@@ -81,4 +72,4 @@ def answer_question(question: str, evidence: List[Chunk]) -> QueryResult:
             snippet = c.text[:240] # for logging purposes
             sources.append(SourceRef(doc_name=c.doc_name, page=c.page, snippet=snippet))
 
-    return QueryResult(answer=answer, sources=sources)
+    return QueryResult(answer=answer, sources=sources, num_contexts=len(evidence))

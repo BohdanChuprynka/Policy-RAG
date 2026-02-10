@@ -2,8 +2,8 @@ from collections import Counter
 from typing import List
 import math
 
-from models import LexicalIndex, RetrievalHit
-from utils.text import tokenize
+from app.models import LexicalIndex, RetrievalHit
+from app.utils.text import tokenize
 
 def bm25_score(query_tokens: List[str], doc_tokens: List[str], index: LexicalIndex) -> float:
     if not query_tokens or not doc_tokens:
@@ -17,9 +17,9 @@ def bm25_score(query_tokens: List[str], doc_tokens: List[str], index: LexicalInd
     if not avgdl or avgdl <= 0:
         avgdl = 1.0 
 
-    k1 = 1.2
-    b = 0.75
-    dl = len(doc_tokens)
+    k1 = 1.2                # DO NOT CHANGE
+    b = 0.75                # DO NOT CHANGE
+    dl = len(doc_tokens)    
 
     tf_counter = Counter(doc_tokens)
 

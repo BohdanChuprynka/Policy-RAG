@@ -1,15 +1,16 @@
 from typing import List
 import numpy as np
 
-from models import DenseIndexMeta, RetrievalHit
-from llm.embedding import embed_texts, l2_normalize
+from app.models import DenseIndexMeta, RetrievalHit
+from app.llm.embedding import embed_texts, l2_normalize
+from app.config import DENSE_TOPN
 
 
 def dense_retrieve(
     question: str,
     vectors: np.ndarray,
     meta: DenseIndexMeta,
-    top_n: int
+    top_n = DENSE_TOPN,
 ) -> List[RetrievalHit]:
 
     if top_n <= 0:

@@ -3,8 +3,8 @@ import numpy as np
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from config import EMBED_MODEL, EMBED_DIM
-from utils.text import batch_items
+from app.config import EMBED_MODEL, EMBED_DIM
+from app.utils.text import batch_items
 
 load_dotenv()
 

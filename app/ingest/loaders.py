@@ -4,10 +4,11 @@ from typing import List, Optional
 
 from llama_index.readers.file import PDFReader
 from llama_index.core.node_parser import SentenceSplitter
+from pathlib import Path
 
-from config import CHUNK_SIZE, CHUNK_OVERLAP, MIN_CHUNK_CHARS
-from models import Chunk
-from utils.text import normalize_whitespace, remove_boilerplate, unicode_normalize
+from app.config import CHUNK_SIZE, CHUNK_OVERLAP, MIN_CHUNK_CHARS
+from app.models import Chunk
+from app.utils.text import normalize_whitespace, remove_boilerplate, unicode_normalize
 
 
 splitter = SentenceSplitter(
@@ -88,11 +89,18 @@ def load_seed_policy_txt(path: str) -> List[Chunk]:
 
 # Adds additional use by allowing users to upload their own PDF files.
 def load_and_chunk_pdf(file_path: str, doc_name: Optional[str] = None) -> List[Chunk]:
+    path = Path(file_path)
+
+    if not path.is_file():
+        return []
+
     reader = PDFReader()
-    docs = reader.load_data(file=file_path)
+    try: 
+        docs = reader.load_data(file=file_path)
+    except Exception as e:
+        return []
 
     base_doc_name = doc_name or os.path.basename(file_path)
-
     chunks: List[Chunk] = []
     to_chunk = {
         "text": [],
