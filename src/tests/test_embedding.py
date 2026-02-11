@@ -1,6 +1,6 @@
 import numpy as np
 
-from app.llm.embedding import l2_normalize
+from src.policy_app.llm.embedding import l2_normalize
 
 def test_l2_normalize_unit_norm_rows():
     mat = np.array([[3.0, 4.0, 0.0],
