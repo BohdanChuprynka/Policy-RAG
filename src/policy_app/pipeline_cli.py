@@ -1,18 +1,5 @@
 """
-app/pipeline_cli.py
-
-Goal:
-- Run your RAG system end-to-end from the terminal (no UI).
-- This is your integration harness: ingest -> index -> retrieve -> merge -> generate.
-
-Learning focus:
-- How artifacts flow through the pipeline.
-- Keeping IDs aligned across dense vectors, lexical docs, and chunks.
-- Minimal "production shape": argument parsing, clear errors, deterministic behavior.
-
-How you'll use it:
-- python -m app.pipeline_cli --pdf McDonalds_Policy.pdf --question "..."
-- or interactive mode if --question is not provided.
+    Basic Pipeline CLI to test the end-to-end RAG pipeline
 """
 
 from __future__ import annotations
@@ -22,17 +9,17 @@ from dataclasses import dataclass
 from typing import Optional, List
 import sys
 
-from app.ingest.loaders import load_seed_policy_txt, load_and_chunk_pdf
+from src.policy_app.ingest.loaders import load_seed_policy_txt, load_and_chunk_pdf
 
-from app.ingest.index_build import build_dense_index, build_lexical_index
+from src.policy_app.ingest.index_build import build_dense_index, build_lexical_index
 
-from app.retrieval.dense import dense_retrieve
-from app.retrieval.lexical import lexical_retrieve
-from app.retrieval.hybrid import hybrid_merge
+from src.policy_app.retrieval.dense import dense_retrieve
+from src.policy_app.retrieval.lexical import lexical_retrieve
+from src.policy_app.retrieval.hybrid import hybrid_merge
 
-from app.llm.generate import answer_question
+from src.policy_app.llm.generate import answer_question
 
-from app.models import Chunk, DenseIndexMeta, LexicalIndex, QueryResult
+from policy_app.models import Chunk, DenseIndexMeta, LexicalIndex, QueryResult
 
 import numpy as np
 

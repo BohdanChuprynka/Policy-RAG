@@ -2,8 +2,8 @@ from collections import Counter
 from typing import List
 import math
 
-from app.models import LexicalIndex, RetrievalHit
-from app.utils.text import tokenize
+from src.policy_app.models import LexicalIndex, RetrievalHit
+from src.policy_app.utils.text import tokenize
 
 def bm25_score(query_tokens: List[str], doc_tokens: List[str], index: LexicalIndex) -> float:
     if not query_tokens or not doc_tokens:

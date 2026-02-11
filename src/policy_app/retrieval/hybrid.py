@@ -1,7 +1,7 @@
 from typing import List, Dict
 
-from app.models import RetrievalHit
-from app.config import HYBRID_TOPK, ALPHA
+from src.policy_app.models import RetrievalHit
+from src.policy_app.config import HYBRID_TOPK, ALPHA
 
 
 def score_normalizer(hits: List[RetrievalHit]) -> List[RetrievalHit]:

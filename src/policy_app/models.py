@@ -1,6 +1,7 @@
 from calendar import c
 from typing import Optional, List, Dict
 from pydantic import BaseModel
+import numpy as np
 
 
 class Chunk(BaseModel):
@@ -31,3 +32,9 @@ class QueryResult(BaseModel):
       answer: str 
       sources: List[SourceRef] 
       num_contexts: int
+
+class PipelineData(BaseModel):
+    chunks: List[Chunk]
+    dense_meta: DenseIndexMeta
+    dense_matrix: np.ndarray
+    lexical: LexicalIndex
