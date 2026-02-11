@@ -1,9 +1,9 @@
 from typing import List
 import numpy as np
 
-from src.policy_app.models import DenseIndexMeta, RetrievalHit
-from src.policy_app.llm.embedding import embed_texts, l2_normalize
-from src.policy_app.config import DENSE_TOPN
+from policy_app.models import DenseIndexMeta, RetrievalHit
+from policy_app.llm.embedding import embed_texts, l2_normalize
+from policy_app.config import DENSE_TOPN
 
 
 def dense_retrieve(

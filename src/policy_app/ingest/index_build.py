@@ -2,10 +2,10 @@ from typing import List, Dict, Tuple
 import numpy as np
 from collections import Counter
 
-from src.policy_app.config import EMBED_DIM
-from src.policy_app.models import Chunk, DenseIndexMeta, LexicalIndex
-from src.policy_app.llm.embedding import embed_texts, l2_normalize
-from src.policy_app.utils.text import tokenize
+from policy_app.config import EMBED_DIM
+from policy_app.models import Chunk, DenseIndexMeta, LexicalIndex
+from policy_app.llm.embedding import embed_texts, l2_normalize
+from policy_app.utils.text import tokenize
 
 
 def make_chunk_lookup(chunks: List[Chunk]) -> Dict[str, Chunk]:

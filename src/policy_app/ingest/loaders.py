@@ -6,9 +6,9 @@ from llama_index.readers.file import PDFReader
 from llama_index.core.node_parser import SentenceSplitter
 from pathlib import Path
 
-from src.policy_app.config import CHUNK_SIZE, CHUNK_OVERLAP, MIN_CHUNK_CHARS
-from src.policy_app.models import Chunk
-from src.policy_app.utils.text import normalize_whitespace, remove_boilerplate, unicode_normalize
+from policy_app.config import CHUNK_SIZE, CHUNK_OVERLAP, MIN_CHUNK_CHARS
+from policy_app.models import Chunk
+from policy_app.utils.text import normalize_whitespace, remove_boilerplate, unicode_normalize
 
 
 splitter = SentenceSplitter(

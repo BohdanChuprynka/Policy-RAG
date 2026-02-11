@@ -3,8 +3,8 @@ import re
 
 from openai import OpenAI
 
-from src.policy_app.config import MODEL_NAME, SYSTEM_PROMPT, MAX_TOKENS
-from src.policy_app.models import Chunk, QueryResult, SourceRef
+from policy_app.config import MODEL_NAME, SYSTEM_PROMPT, MAX_TOKENS
+from policy_app.models import Chunk, QueryResult, SourceRef
 
 client = OpenAI()
 

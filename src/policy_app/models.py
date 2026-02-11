@@ -1,6 +1,5 @@
-from calendar import c
 from typing import Optional, List, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import numpy as np
 
 
@@ -39,5 +38,6 @@ class PipelineData(BaseModel):
     dense_matrix: np.ndarray
     lexical: LexicalIndex
 
-    class Config: # to allow np arrays
-        arbitrary_types_allowed = True 
+    model_config = ConfigDict(
+      arbitrary_types_allowed=True
+)

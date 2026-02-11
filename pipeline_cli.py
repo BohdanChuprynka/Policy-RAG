@@ -9,15 +9,15 @@ from dataclasses import dataclass
 from typing import Optional, List
 import sys
 
-from src.policy_app.ingest.loaders import load_seed_policy_txt, load_and_chunk_pdf
+from policy_app.ingest.loaders import load_seed_policy_txt, load_and_chunk_pdf
 
-from src.policy_app.ingest.index_build import build_dense_index, build_lexical_index
+from policy_app.ingest.index_build import build_dense_index, build_lexical_index
 
-from src.policy_app.retrieval.dense import dense_retrieve
-from src.policy_app.retrieval.lexical import lexical_retrieve
-from src.policy_app.retrieval.hybrid import hybrid_merge
+from policy_app.retrieval.dense import dense_retrieve
+from policy_app.retrieval.lexical import lexical_retrieve
+from policy_app.retrieval.hybrid import hybrid_merge
 
-from src.policy_app.llm.generate import answer_question
+from policy_app.llm.generate import answer_question
 
 from policy_app.models import Chunk, DenseIndexMeta, LexicalIndex, QueryResult
 

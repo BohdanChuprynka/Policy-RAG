@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from src.policy_app.retrieval.dense import dense_retrieve
-from src.policy_app.retrieval.lexical import lexical_retrieve
-from src.policy_app.retrieval.hybrid import hybrid_merge
+from policy_app.retrieval.dense import dense_retrieve
+from policy_app.retrieval.lexical import lexical_retrieve
+from policy_app.retrieval.hybrid import hybrid_merge
 
-from src.policy_app.llm.generate import answer_question
+from policy_app.llm.generate import answer_question
 
-from src.policy_app.models import PipelineData, QueryResult
+from policy_app.models import PipelineData, QueryResult
 
 def rag_pipeline(art: PipelineData, question: str, *, top_k: int, alpha: float) -> QueryResult:
-    # TODO:  Function docstring  & Not tested
+
     chunk_by_id = {c.chunk_id: c for c in art.chunks}
     
     dense_hits = dense_retrieve(question, art.dense_matrix, art.dense_meta, top_n=top_k)

@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import argparse
 from typing import Optional, List
-import sys
 
-from src.policy_app.ingest.loaders import load_seed_policy_txt, load_and_chunk_pdf
+from policy_app.ingest.loaders import load_seed_policy_txt, load_and_chunk_pdf
 
-from src.policy_app.ingest.index_build import build_dense_index, build_lexical_index
+from policy_app.ingest.index_build import build_dense_index, build_lexical_index
 
-from src.policy_app.models import Chunk, PipelineData
+from policy_app.models import Chunk, PipelineData
 
 
 def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineData:
@@ -38,3 +36,7 @@ def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineD
     lexical = build_lexical_index(chunks)
 
     return PipelineData(chunks=chunks, dense_meta=dense_meta, dense_matrix=dense_matrix, lexical=lexical)
+
+
+def extend_pipeline(pipeline: PipelineData, new_chunks: List[Chunk]) -> PipelineData: # used in api.py
+    return PipelineData(chunks=pipeline.chunks + new_chunks, dense_meta=pipeline.dense_meta, dense_matrix=pipeline.dense_matrix, lexical=pipeline.lexical)

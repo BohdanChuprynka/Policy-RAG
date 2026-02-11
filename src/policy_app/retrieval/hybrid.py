@@ -1,7 +1,7 @@
 from typing import List, Dict
 
-from src.policy_app.models import RetrievalHit
-from src.policy_app.config import HYBRID_TOPK, ALPHA
+from policy_app.models import RetrievalHit
+from policy_app.config import HYBRID_TOPK, ALPHA
 
 
 def score_normalizer(hits: List[RetrievalHit]) -> List[RetrievalHit]:
@@ -54,4 +54,4 @@ def hybrid_merge(
     fused.sort(key=lambda h: h.score, reverse=True)
     return fused[:top_k]
 
-# TODO: rank-based_normalization
+# TODO: rank-based_normalization?

@@ -8,10 +8,10 @@ import argparse
 from typing import List
 import sys
 
-from src.policy_app.models import QueryResult
+from policy_app.models import QueryResult
 
-from src.pipelines.data_pipeline import data_pipeline
-from src.pipelines.rag_pipeline import rag_pipeline
+from pipelines.data_pipeline import data_pipeline
+from pipelines.rag_pipeline import rag_pipeline
 
 import numpy as np
 
