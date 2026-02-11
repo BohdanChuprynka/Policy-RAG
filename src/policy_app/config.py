@@ -1,4 +1,7 @@
 # --- OpenAI settings ---
+from pathlib import Path
+
+
 EMBED_MODEL: str = "text-embedding-3-large"
 EMBED_DIM: int = 3072
 MODEL_NAME: str = "gpt-4o-mini"
@@ -27,5 +30,6 @@ SYSTEM_PROMPT = (
 
 
 # --- Paths / storage ---
-# TODO: Set upload directory name
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = PROJECT_ROOT / "data"
 # TODO: Set seed policy path (start with txt for simplicity)
