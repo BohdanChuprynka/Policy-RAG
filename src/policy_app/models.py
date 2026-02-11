@@ -38,3 +38,6 @@ class PipelineData(BaseModel):
     dense_meta: DenseIndexMeta
     dense_matrix: np.ndarray
     lexical: LexicalIndex
+
+    class Config: # to allow np arrays
+        arbitrary_types_allowed = True 

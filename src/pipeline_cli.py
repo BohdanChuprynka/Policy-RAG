@@ -5,20 +5,15 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 from typing import List
 import sys
 
-from policy_app.models import Chunk, DenseIndexMeta, LexicalIndex, QueryResult
+from src.policy_app.models import QueryResult
+
+from src.pipelines.data_pipeline import data_pipeline
+from src.pipelines.rag_pipeline import rag_pipeline
 
 import numpy as np
-
-@dataclass
-class PipelineData:
-    chunks: List[Chunk]
-    dense_meta: DenseIndexMeta
-    dense_matrix: np.ndarray
-    lexical: LexicalIndex
 
 def _format_query_result(result: QueryResult) -> str:
     lines: List[str] = []
