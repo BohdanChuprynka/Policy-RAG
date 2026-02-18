@@ -1,19 +1,3 @@
-"""
-app/api.py
-
-Goal:
-- HTTP layer only (transport).
-- All core logic lives in pipelines/ (data_pipeline + rag_pipeline).
-Latest practice:
-- Use FastAPI lifespan for startup/shutdown (app.on_event is deprecated-ish in practice).
-
-
-Endpoints (MVP):
-- GET  /health
-- POST /ingest/pdf
-- POST /query
-"""
-
 from __future__ import annotations
 
 from typing import Optional, Dict
@@ -37,11 +21,6 @@ STATE: Dict[str, object] = {
 
 
 def _require_pipeline() -> PipelineData:
-    """
-    Helper:
-    - return STATE["pipeline"] if present
-    - else raise HTTP 400
-    """
     p = STATE["pipeline"]
 
     if p is None:
