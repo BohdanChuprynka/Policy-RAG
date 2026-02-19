@@ -4,6 +4,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",          # local dev convenience
@@ -42,11 +43,19 @@ class Settings(BaseSettings):
     )
 
     # --- Security / Limits ---
+
+    # api.py
     session_ttl_seconds: int = 3600
     max_uploads_per_session: int = 2
     max_top_k: int = 10
     max_question_chars: int = 600
     max_upload_mb: int = 15
+    # streamlit_app.py
+    request_timeout_short: int = 15
+    request_timeout_long: int = 60
+    
+
+
 
     # --- Paths ---
     project_root: Path = Path(__file__).resolve().parents[2]
