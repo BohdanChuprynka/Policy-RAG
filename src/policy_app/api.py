@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Optional, Dict
 from contextlib import asynccontextmanager
+import uuid
 from pathlib import Path
+import time
 import os
 import tempfile
 
@@ -13,21 +15,29 @@ from policy_app.config import settings
 from pipelines.data_pipeline import data_pipeline, extend_pipeline  
 from pipelines.rag_pipeline import rag_pipeline
 
+SESSION_HEADER = "X-Session-ID"
 
-
-# MVP in-memory state (later: persistent storage + org scoping) # TODO: change to production level later
-STATE: Dict[str, object] = {
-    "pipeline": None,  # Optional[PipelineData]
+STATE: Dict[str, dict] = {
+    "sessions": {}  # session_id -> {pipeline, uploads, timestamps}
 }
 
+def _cleanup_expired_sessions() -> None:
+    now = time.time()
+    expired = []
 
-def _require_pipeline() -> PipelineData:
-    p = STATE["pipeline"]
+    for sid, data in STATE["sessions"].items():
+        if now - data["last_seen_unix"] > settings.session_ttl_seconds:
+            expired.append(sid)
 
-    if p is None:
-        raise HTTPException(status_code=400, detail="No documents ingested yet.")
+    for sid in expired:
+        del STATE["sessions"][sid]
+    
+def _resolve_session_id(session_id: str | None) -> str:
+    if session_id and session_id.strip():
+        return session_id.strip()
 
-    return p
+    return str(uuid.uuid4())
+
 
 
 @asynccontextmanager
@@ -56,33 +66,84 @@ def health() -> dict:
 
 
 @app.post("/ingest/pdf")
-async def ingest_pdf(file: UploadFile = File(...)) -> dict:
+async def ingest_pdf(
+    file: UploadFile = File(...),
+    session_id : str | None = Header(default=None, alias=SESSION_HEADER),
+):
+    _cleanup_expired_sessions()
+    sid = _resolve_session_id(session_id)
+
+    file_bytes = await file.read()
+    if len(file_bytes) > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(413, "File is too large for upload.")
+
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "Only PDF uploads are supported.")
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(await file.read())
+        tmp.write(file_bytes)
         tmp_path = tmp.name
 
-    try:
-        chunks_pipeline = data_pipeline(seed_txt=None, pdf_path=tmp_path)
+    session = STATE["sessions"].get(sid)
 
-        if STATE["pipeline"] is None:
-            STATE["pipeline"] = chunks_pipeline
-        else:
-            STATE["pipeline"] = extend_pipeline(STATE["pipeline"], chunks_pipeline.chunks)
+    if session is None:
+        pipeline = data_pipeline(seed_txt=None, pdf_path=tmp_path)
 
-        added = len(chunks_pipeline.chunks)
-        total = len(STATE["pipeline"].chunks)
+        STATE["sessions"][sid] = {
+            "pipeline": pipeline,
+            "uploads": 1,
+            "created_unix": time.time(),
+            "last_seen_unix": time.time(),
+        }
 
-        return {"ok": True, "added_chunks": added, "total_chunks": total}
-    finally:
-        try:
-            os.remove(tmp_path)
-        except OSError:
-            pass
+        added = len(pipeline.chunks)
+        total = len(pipeline.chunks)
+
+    else:
+        if session["uploads"] >= settings.max_uploads_per_session:
+            raise HTTPException(429, "Upload limit reached for this session")
+
+        new_pipeline = data_pipeline(seed_txt=None, pdf_path=tmp_path)
+        extended = extend_pipeline(session["pipeline"], new_pipeline.chunks)
+
+        session["pipeline"] = extended
+        session["uploads"] += 1
+        session["last_seen_unix"] = time.time()
+
+        added = len(new_pipeline.chunks)
+        total = len(extended.chunks)
+
+    return {
+    "ok": True,
+    "session_id": sid,
+    "added_chunks": added,
+    "total_chunks": total,
+    "uploads_used": STATE["sessions"][sid]["uploads"],
+    "uploads_limit": settings.max_uploads_per_session,
+}
 
 @app.post("/query", response_model=QueryResult)
-def query(question: str, top_k: int = settings.top_k, alpha: float = settings.alpha) -> QueryResult:
-    p = _require_pipeline()
-    return rag_pipeline(p, question, top_k=top_k, alpha=alpha)
+def query(question: str,
+          top_k: int = settings.hybrid_topk, 
+          alpha: float = settings.alpha,
+          session_id: str | None = Header(default=None, alias=SESSION_HEADER)
+) -> QueryResult:
+    _cleanup_expired_sessions()
+    sid = _resolve_session_id(session_id)
+    session = STATE["sessions"].get(sid)
+
+    if session is None:
+        raise HTTPException(400, "No documents ingested yet.")
+
+    if len(question) > settings.max_question_chars:
+        raise HTTPException(400, "Question too long.")
+
+    top_k = min(top_k, settings.max_top_k)
+    alpha = max(0.0, min(1.0, alpha))
+
+    result = rag_pipeline(session["pipeline"], question, top_k=top_k, alpha=alpha)
+    
+    session["last_seen_unix"] = time.time()
+
+    return result
+    

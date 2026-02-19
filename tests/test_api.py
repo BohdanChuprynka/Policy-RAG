@@ -1,10 +1,22 @@
+from types import SimpleNamespace
+
+import pytest
 from fastapi.testclient import TestClient
 
-from policy_app.api import app, STATE
+import policy_app.api as api_module
+
+app = api_module.app
+STATE = api_module.STATE
+
+
+@pytest.fixture(autouse=True)
+def reset_api_state():
+    STATE["pipeline"] = None
+    STATE["sessions"] = {}
+    yield
 
 
 def test_health_starts_empty():
-    STATE["pipeline"] = None 
     client = TestClient(app)
 
     r = client.get("/health")
@@ -16,7 +28,6 @@ def test_health_starts_empty():
 
 
 def test_query_requires_ingest():
-    STATE["pipeline"] = None
     client = TestClient(app)
 
     r = client.post("/query", params={"question": "test"})
@@ -24,10 +35,28 @@ def test_query_requires_ingest():
     assert "No documents ingested yet" in r.json()["detail"]
 
 
-def test_ingest_pdf_then_query(tmp_path):
+def test_ingest_pdf_then_query(monkeypatch):
     # NOTE: you need a small PDF fixture in your repo, or generate one.
-    STATE["pipeline"] = None
     client = TestClient(app)
+
+    def fake_data_pipeline(seed_txt=None, pdf_path=None):
+        return SimpleNamespace(chunks=[{"chunk_id": "c1"}])
+
+    def fake_rag_pipeline(pipeline, question, *, top_k, alpha):
+        return {
+            "answer": "Mock answer.",
+            "sources": [
+                {
+                    "doc_name": "sample.pdf",
+                    "page": 1,
+                    "snippet": "Mock snippet.",
+                }
+            ],
+            "num_contexts": 1,
+        }
+
+    monkeypatch.setattr(api_module, "data_pipeline", fake_data_pipeline)
+    monkeypatch.setattr(api_module, "rag_pipeline", fake_rag_pipeline)
 
     pdf_path = "tests/fixtures/McDonalds_Policy.pdf" # change if needed
     with open(pdf_path, "rb") as f:
@@ -39,7 +68,11 @@ def test_ingest_pdf_then_query(tmp_path):
     assert data["added_chunks"] >= 1
     assert data["total_chunks"] >= 1
 
-    q = client.post("/query", params={"question": "What is this document about?"})
+    q = client.post(
+        "/query",
+        params={"question": "What is this document about?"},
+        headers={"X-Session-ID": data["session_id"]},
+    )
     assert q.status_code == 200
     out = q.json()
     assert "answer" in out
