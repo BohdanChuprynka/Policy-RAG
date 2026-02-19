@@ -5,12 +5,11 @@ from contextlib import asynccontextmanager
 import uuid
 from pathlib import Path
 import time
-import os
 import tempfile
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 
-from policy_app.models import QueryResult, PipelineData
+from policy_app.models import QueryResult
 from policy_app.config import settings
 from pipelines.data_pipeline import data_pipeline, extend_pipeline  
 from pipelines.rag_pipeline import rag_pipeline
@@ -38,32 +37,43 @@ def _resolve_session_id(session_id: str | None) -> str:
 
     return str(uuid.uuid4())
 
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    seed_env = os.getenv("SEED_POLICY_TXT")
+    # Initialize session store
+    STATE["sessions"] = {}
 
-    if seed_env:
-        seed_path = Path(seed_env)
-  
-        if seed_path.is_file():
-            STATE["pipeline"] = data_pipeline(seed_txt=seed_path, pdf_path=None)    
+    seed_path = settings.seed_policy_txt
+
+    if seed_path and Path(seed_path).is_file():
+        pipeline = data_pipeline(seed_txt=seed_path, pdf_path=None)
+
+        STATE["sessions"]["seed"] = {
+            "pipeline": pipeline,
+            "uploads": 0,
+            "created_unix": time.time(),
+            "last_seen_unix": time.time(),
+        }
+
     yield
 
 app = FastAPI(title="Policy RAG API", version="0.1.0", lifespan=lifespan)
 
-
 @app.get("/health")
 def health() -> dict:
-    p = STATE["pipeline"]
+    sessions = STATE.get("sessions", {})
+
+    total_chunks = 0
+    for s in sessions.values():
+        pipeline = s.get("pipeline")
+        if pipeline:
+            total_chunks += len(pipeline.chunks)
 
     return {
-      "ok": True,
-      "has_pipeline": p is not None,
-      "num_chunks": len(p.chunks) if p else 0
+        "ok": True,
+        "num_sessions": len(sessions),
+        "has_seed": "seed" in sessions,
+        "total_chunks": total_chunks,
     }
-
 
 @app.post("/ingest/pdf")
 async def ingest_pdf(
