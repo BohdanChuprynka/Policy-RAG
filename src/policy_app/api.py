@@ -6,12 +6,13 @@ from pathlib import Path
 import os
 import tempfile
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 
 from policy_app.models import QueryResult, PipelineData
-from policy_app.config import ALPHA, HYBRID_TOPK
+from policy_app.config import settings
 from pipelines.data_pipeline import data_pipeline, extend_pipeline  
 from pipelines.rag_pipeline import rag_pipeline
+
 
 
 # MVP in-memory state (later: persistent storage + org scoping) # TODO: change to production level later
@@ -82,6 +83,6 @@ async def ingest_pdf(file: UploadFile = File(...)) -> dict:
             pass
 
 @app.post("/query", response_model=QueryResult)
-def query(question: str, top_k: int = HYBRID_TOPK, alpha: float = ALPHA) -> "QueryResult":
+def query(question: str, top_k: int = settings.top_k, alpha: float = settings.alpha) -> QueryResult:
     p = _require_pipeline()
     return rag_pipeline(p, question, top_k=top_k, alpha=alpha)

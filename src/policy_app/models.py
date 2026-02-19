@@ -2,7 +2,6 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel, ConfigDict
 import numpy as np
 
-
 class Chunk(BaseModel):
       chunk_id: str
       text: str

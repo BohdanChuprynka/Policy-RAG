@@ -3,14 +3,14 @@ import numpy as np
 
 from policy_app.models import DenseIndexMeta, RetrievalHit
 from policy_app.llm.embedding import embed_texts, l2_normalize
-from policy_app.config import DENSE_TOPN
+from policy_app.config import settings
 
 
 def dense_retrieve(
     question: str,
     vectors: np.ndarray,
     meta: DenseIndexMeta,
-    top_n = DENSE_TOPN,
+    top_n = settings.dense_topn,
 ) -> List[RetrievalHit]:
 
     if top_n <= 0:

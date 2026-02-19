@@ -2,7 +2,7 @@ from typing import List, Dict, Tuple
 import numpy as np
 from collections import Counter
 
-from policy_app.config import EMBED_DIM
+from policy_app.config import settings
 from policy_app.models import Chunk, DenseIndexMeta, LexicalIndex
 from policy_app.llm.embedding import embed_texts, l2_normalize
 from policy_app.utils.text import tokenize
@@ -13,7 +13,7 @@ def make_chunk_lookup(chunks: List[Chunk]) -> Dict[str, Chunk]:
 
 def build_dense_index(chunks: List[Chunk]) -> Tuple[np.ndarray, DenseIndexMeta]:
     if not chunks:
-        empty = np.zeros((0, EMBED_DIM), dtype=np.float32)
+        empty = np.zeros((0, settings.embed_dim), dtype=np.float32)
         return (empty, DenseIndexMeta(chunk_ids=[]))
 
     embeddings = embed_texts([c.text for c in chunks])

@@ -1,25 +1,38 @@
-# --- OpenAI settings ---
+from __future__ import annotations
+
 from pathlib import Path
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",          # local dev convenience
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
-EMBED_MODEL: str = "text-embedding-3-large"
-EMBED_DIM: int = 3072
-MODEL_NAME: str = "gpt-4o-mini"
+    # --- Secrets ---
+    openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
 
-# --- Chunking settings ---
-CHUNK_SIZE = 800
-CHUNK_OVERLAP = 100
-MIN_CHUNK_CHARS = 100
+    # --- OpenAI models ---
+    embed_model: str = "text-embedding-3-large"
+    embed_dim: int = 3072
+    model_name: str = "gpt-4o-mini"
 
-# --- Retrieval settings ---
-DENSE_TOPN = 5
-LEX_TOPN = 5
-HYBRID_TOPK = 5
-ALPHA = 0.5
+    # --- Chunking ---
+    chunk_size: int = 800
+    chunk_overlap: int = 100
+    min_chunk_chars: int = 100
 
-# --- Generation settings ---
-MAX_TOKENS = 700
-SYSTEM_PROMPT = (
+    # --- Retrieval ---
+    dense_topn: int = 5
+    lex_topn: int = 5
+    hybrid_topk: int = 5
+    alpha: float = 0.5
+
+    # --- Generation ---
+    max_tokens: int = 700
+    system_prompt: str = (
         "You are a policy assistant.\n"
         "Rules:\n"
         "1) Answer ONLY using the evidence provided.\n"
@@ -28,8 +41,16 @@ SYSTEM_PROMPT = (
         "4) Do not invent citations.\n"
     )
 
+    # --- Security / Limits ---
+    session_ttl_seconds: int = 3600
+    max_uploads_per_session: int = 2
+    max_top_k: int = 10
+    max_question_chars: int = 600
+    max_upload_mb: int = 15
 
-# --- Paths / storage ---
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = PROJECT_ROOT / "data"
-# TODO: Set seed policy path (start with txt for simplicity)
+    # --- Paths ---
+    project_root: Path = Path(__file__).resolve().parents[2]
+    data_dir: Path = project_root / "data"
+    seed_policy_txt: Path | None = None  # set via env if you want
+
+settings = Settings()

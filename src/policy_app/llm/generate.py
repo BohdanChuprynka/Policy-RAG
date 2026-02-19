@@ -3,7 +3,7 @@ import re
 
 from openai import OpenAI
 
-from policy_app.config import MODEL_NAME, SYSTEM_PROMPT, MAX_TOKENS
+from policy_app.config import settings
 from policy_app.models import Chunk, QueryResult, SourceRef
 
 client = OpenAI()
@@ -49,12 +49,12 @@ def answer_question(question: str, evidence: List[Chunk]) -> QueryResult:
     user_prompt = f"Question:\n{question}\n\nEvidence:\n{context}"
 
     resp = client.chat.completions.create(
-        model=MODEL_NAME,
+        model=settings.model_name,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": settings.system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        max_tokens=MAX_TOKENS,
+        max_tokens=settings.max_tokens,
     )
 
     answer = (resp.choices[0].message.content or "").strip()

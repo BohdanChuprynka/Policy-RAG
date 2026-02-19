@@ -3,7 +3,7 @@ import numpy as np
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from policy_app.config import EMBED_MODEL, EMBED_DIM
+from policy_app.config import settings
 from policy_app.utils.text import batch_items
 
 load_dotenv()
@@ -12,13 +12,13 @@ client = OpenAI()
 
 def embed_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
     if not texts:
-        return np.zeros((0, EMBED_DIM), dtype=np.float32)
+        return np.zeros((0, settings.embed_dim), dtype=np.float32)
 
     embeddings: List[List[float]] = []
 
     for batch in batch_items(texts, batch_size):
         resp = client.embeddings.create(
-            model=EMBED_MODEL,
+            model=settings.embed_model,
             input=batch,
         )
 
@@ -32,7 +32,7 @@ def embed_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
 
     arr = np.array(embeddings, dtype=np.float32)
 
-    expected_shape = (len(texts), EMBED_DIM)
+    expected_shape = (len(texts), settings.embed_dim)
     if arr.shape != expected_shape:
         raise ValueError(f"Unexpected embedding array shape {arr.shape}; expected {expected_shape}.")
 

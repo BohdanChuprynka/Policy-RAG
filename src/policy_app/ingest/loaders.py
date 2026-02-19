@@ -6,14 +6,14 @@ from llama_index.readers.file import PDFReader
 from llama_index.core.node_parser import SentenceSplitter
 from pathlib import Path
 
-from policy_app.config import CHUNK_SIZE, CHUNK_OVERLAP, MIN_CHUNK_CHARS
+from policy_app.config import settings
 from policy_app.models import Chunk
 from policy_app.utils.text import normalize_whitespace, remove_boilerplate, unicode_normalize
 
 
 splitter = SentenceSplitter(
-    chunk_size=CHUNK_SIZE,
-    chunk_overlap=CHUNK_OVERLAP,
+    chunk_size=settings.chunk_size,
+    chunk_overlap=settings.chunk_overlap,
 )
 
 
@@ -72,7 +72,7 @@ def load_seed_policy_txt(path: str) -> List[Chunk]:
             c = normalize_whitespace(c)
             if not c:
                 continue
-            if len(c) < MIN_CHUNK_CHARS:
+            if len(c) < settings.min_chunk_chars:
                 continue
 
             chunks.append(
@@ -141,7 +141,7 @@ def load_and_chunk_pdf(file_path: str, doc_name: Optional[str] = None) -> List[C
             c = normalize_whitespace(c)
             if not c:
                 continue
-            if len(c) < MIN_CHUNK_CHARS:
+            if len(c) < settings.min_chunk_chars:
                 continue
 
             chunks.append(
