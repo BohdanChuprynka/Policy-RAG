@@ -19,16 +19,8 @@ from policy_app.retrieval.hybrid import hybrid_merge
 
 from policy_app.llm.generate import answer_question
 
-from policy_app.models import Chunk, DenseIndexMeta, LexicalIndex, QueryResult
+from policy_app.models import Chunk, QueryResult, PipelineData
 
-import numpy as np
-
-@dataclass
-class PipelineData:
-    chunks: List[Chunk]
-    dense_meta: DenseIndexMeta
-    dense_matrix: np.ndarray
-    lexical: LexicalIndex
 
 
 def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineData:
@@ -36,8 +28,7 @@ def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineD
     Accepts paths and outputs a PipelineData object with chunks required to run the RAG pipeline.
     """
 
-
-    if not (seed_txt or pdf_path):
+    if not (seed_txt and pdf_path):
         raise ValueError("No chunks loaded")
 
     chunks: List[Chunk] = []
