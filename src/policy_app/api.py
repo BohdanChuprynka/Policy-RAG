@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional, Dict
+from typing import Dict
 from contextlib import asynccontextmanager
 import uuid
 from pathlib import Path
 import time
 import tempfile
+import logging
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 
@@ -15,6 +16,7 @@ from pipelines.data_pipeline import data_pipeline, extend_pipeline
 from pipelines.rag_pipeline import rag_pipeline
 
 SESSION_HEADER = "X-Session-ID"
+logger = logging.getLogger(__name__)
 
 STATE: Dict[str, dict] = {
     "sessions": {}  # session_id -> {pipeline, uploads, timestamps}
@@ -25,6 +27,8 @@ def _cleanup_expired_sessions() -> None:
     expired = []
 
     for sid, data in STATE["sessions"].items():
+        if sid == "seed":
+            continue
         if now - data["last_seen_unix"] > settings.session_ttl_seconds:
             expired.append(sid)
 
@@ -33,7 +37,10 @@ def _cleanup_expired_sessions() -> None:
     
 def _resolve_session_id(session_id: str | None) -> str:
     if session_id and session_id.strip():
-        return session_id.strip()
+        sid = session_id.strip()
+        if sid == "seed":
+            return str(uuid.uuid4())
+        return sid
 
     return str(uuid.uuid4())
 
@@ -42,17 +49,25 @@ async def lifespan(app: FastAPI):
     # Initialize session store
     STATE["sessions"] = {}
 
-    seed_path = settings.seed_policy_txt
+    seed_path = settings.seed_policy_txt or (settings.data_dir / "seed_policy.txt")
 
     if seed_path and Path(seed_path).is_file():
-        pipeline = data_pipeline(seed_txt=seed_path, pdf_path=None)
+        try:
+            pipeline = data_pipeline(seed_txt=str(seed_path), pdf_path=None)
+        except ValueError as exc:
+            logger.warning("Seed policy exists but produced no chunks: %s", exc)
+        except Exception:
+            logger.exception("Seed policy failed to load from %s", seed_path)
+        else:
+            STATE["sessions"]["seed"] = {
+                "pipeline": pipeline,
+                "uploads": 0,
+                "created_unix": time.time(),
+                "last_seen_unix": time.time(),
+            }
 
-        STATE["sessions"]["seed"] = {
-            "pipeline": pipeline,
-            "uploads": 0,
-            "created_unix": time.time(),
-            "last_seen_unix": time.time(),
-        }
+    else:
+        logger.warning("Seed policy file not found at %s", seed_path)
 
     yield
 
@@ -80,6 +95,9 @@ async def ingest_pdf(
     file: UploadFile = File(...),
     session_id : str | None = Header(default=None, alias=SESSION_HEADER),
 ):
+    if not settings.allow_pdf_ingest:
+        raise HTTPException(403, "PDF ingest is disabled for this deployment.")
+
     _cleanup_expired_sessions()
     sid = _resolve_session_id(session_id)
 
@@ -140,7 +158,7 @@ def query(question: str,
 ) -> QueryResult:
     _cleanup_expired_sessions()
     sid = _resolve_session_id(session_id)
-    session = STATE["sessions"].get(sid)
+    session = STATE["sessions"].get(sid) or STATE["sessions"].get("seed")
 
     if session is None:
         raise HTTPException(400, "No documents ingested yet.")
