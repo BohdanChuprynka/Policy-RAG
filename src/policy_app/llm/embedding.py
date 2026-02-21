@@ -1,36 +1,55 @@
-from typing import List
+from typing import Dict, List
 import numpy as np
 from openai import OpenAI
 from dotenv import load_dotenv
 
 from policy_app.config import settings
+from policy_app.storage import embedding_cache
 from policy_app.utils.text import batch_items
 
 load_dotenv()
 
 client = OpenAI()
 
+
 def embed_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
     if not texts:
         return np.zeros((0, settings.embed_dim), dtype=np.float32)
 
-    embeddings: List[List[float]] = []
+    keys = [embedding_cache.make_cache_key(t) for t in texts]
 
-    for batch in batch_items(texts, batch_size):
-        resp = client.embeddings.create(
-            model=settings.embed_model,
-            input=batch,
-        )
+    cached: Dict[str, np.ndarray] = embedding_cache.get_many(keys)
 
-        # OpenAI SDK returns an object with `.data` (list) where each item has `.embedding`
-        if len(resp.data) != len(batch):
-            raise ValueError(
-                f"Expected {len(batch)} embeddings for this batch, got {len(resp.data)}."
+    missing_texts: List[str] = []
+    missing_keys: List[str] = []
+    for t, k in zip(texts, keys):
+        if k not in cached:
+            missing_texts.append(t)
+            missing_keys.append(k)
+
+    if missing_texts:
+        fetched: Dict[str, np.ndarray] = {}
+        idx = 0
+        for batch in batch_items(missing_texts, batch_size):
+            resp = client.embeddings.create(
+                model=settings.embed_model,
+                input=batch,
             )
 
-        embeddings.extend([item.embedding for item in resp.data])
+            if len(resp.data) != len(batch):
+                raise ValueError(
+                    f"Expected {len(batch)} embeddings for this batch, got {len(resp.data)}."
+                )
 
-    arr = np.array(embeddings, dtype=np.float32)
+            for item in resp.data:
+                vec = np.array(item.embedding, dtype=np.float32)
+                fetched[missing_keys[idx]] = vec
+                idx += 1
+
+        embedding_cache.put_many(fetched)
+        cached.update(fetched)
+
+    arr = np.vstack([cached[k] for k in keys]).astype(np.float32, copy=False)
 
     expected_shape = (len(texts), settings.embed_dim)
     if arr.shape != expected_shape:
