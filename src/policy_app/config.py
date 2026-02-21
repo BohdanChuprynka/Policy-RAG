@@ -7,13 +7,16 @@ from pydantic import Field
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",          # local dev convenience
+        env_file=".env",        
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
-    # --- Secrets ---
+    # --- .env ---
     openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
+    api_base_url: str = Field("http://127.0.0.1:8000", alias="API_BASE_URL")
+    repo_url: str = Field("https://github.com/BohdanChuprynka", alias="REPO_URL")
+
 
     # --- OpenAI models ---
     embed_model: str = "text-embedding-3-large"
@@ -50,16 +53,17 @@ class Settings(BaseSettings):
     max_top_k: int = 10
     max_question_chars: int = 600
     max_upload_mb: int = 15
+    allow_pdf_ingest: bool = Field(False, alias="ALLOW_PDF_INGEST")
     # streamlit_app.py
     request_timeout_short: int = 15
     request_timeout_long: int = 60
+    embedding_cache_enabled: bool = Field(True, alias="EMBEDDING_CACHE_ENABLED")
+    embedding_cache_path: Path | None = Field(None, alias="EMBEDDING_CACHE_PATH")
+
     
-
-
-
     # --- Paths ---
     project_root: Path = Path(__file__).resolve().parents[2]
     data_dir: Path = project_root / "data"
-    seed_policy_txt: Path | None = None  # set via env if you want
+    seed_policy_txt: Path | None = Field(None, alias="SEED_POLICY_TXT")
 
 settings = Settings()
