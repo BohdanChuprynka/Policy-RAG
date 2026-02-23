@@ -132,7 +132,7 @@ async def ingest_pdf(
             raise HTTPException(429, "Upload limit reached for this session")
 
         new_pipeline = data_pipeline(seed_txt=None, pdf_path=tmp_path)
-        extended = extend_pipeline(session["pipeline"], new_pipeline.chunks)
+        extended = extend_pipeline(session["pipeline"], new_pipeline)
 
         session["pipeline"] = extended
         session["uploads"] += 1

@@ -9,6 +9,7 @@ from policy_app.ingest.index_build import build_dense_index, build_lexical_index
 from policy_app.models import Chunk, PipelineData
 
 
+
 def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineData:
     """ 
     Accepts paths and outputs a PipelineData object with chunks required to run the RAG pipeline.
@@ -38,5 +39,13 @@ def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineD
     return PipelineData(chunks=chunks, dense_meta=dense_meta, dense_matrix=dense_matrix, lexical=lexical)
 
 
-def extend_pipeline(pipeline: PipelineData, new_chunks: List[Chunk]) -> PipelineData: # used in api.py
-    return PipelineData(chunks=pipeline.chunks + new_chunks, dense_meta=pipeline.dense_meta, dense_matrix=pipeline.dense_matrix, lexical=pipeline.lexical)
+def extend_pipeline(pipeline: PipelineData, new_pipeline: PipelineData) -> PipelineData:  # used in api.py
+    combined_chunks = pipeline.chunks + new_pipeline.chunks
+    dense_matrix, dense_meta = build_dense_index(combined_chunks)
+    lexical = build_lexical_index(combined_chunks)
+    return PipelineData(
+        chunks=combined_chunks,
+        dense_meta=dense_meta,
+        dense_matrix=dense_matrix,
+        lexical=lexical,
+    )
