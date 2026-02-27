@@ -13,8 +13,6 @@ from policy_app.models import QueryResult
 from pipelines.data_pipeline import data_pipeline
 from pipelines.rag_pipeline import rag_pipeline
 
-import numpy as np
-
 def _format_query_result(result: QueryResult) -> str:
     lines: List[str] = []
     lines.append("Answer:")

@@ -15,7 +15,6 @@ def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineD
     Accepts paths and outputs a PipelineData object with chunks required to run the RAG pipeline.
     """
 
-
     if not (seed_txt or pdf_path):
         raise ValueError("No chunks loaded")
 
