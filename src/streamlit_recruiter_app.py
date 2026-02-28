@@ -153,7 +153,7 @@ with st.expander("Admin Ingest", expanded=False):
         disabled=True,
     )
     if st.button("Ingest PDF", use_container_width=True):
-        st.info("PDF ingestion is fully implemented but disabled in the public deployment to prevent abuse and uncontrolled API costs. The complete ingestion workflow can be tested by cloning the repository and running the app locally.")
+        st.info("PDF ingestion is fully implemented but disabled in the public deployment to prevent abuse and uncontrolled API costs. The complete ingestion workflow can be tested by cloning the repository and running the app locally with your own API key.")
 
 st.divider()
 st.caption(f"Portfolio demo | Repo: {settings.repo_url}")
