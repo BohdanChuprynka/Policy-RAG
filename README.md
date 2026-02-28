@@ -6,12 +6,15 @@ This project ingests policy content (seed TXT and optional PDFs), builds dense +
 
 ## Table of Contents
 - [Overview](#overview)
+- [Frontend Screenshots](#frontend-screenshots)
 - [System Architecture](#system-architecture)
 - [Repository Structure](#repository-structure)
 - [Tech Stack](#tech-stack)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Run Modes](#run-modes)
+- [Docker](#docker)
+- [Advanced Usage](#advanced-usage)
 - [API Reference](#api-reference)
 - [Testing](#testing)
 - [Operational Notes](#operational-notes)
@@ -24,37 +27,17 @@ This project ingests policy content (seed TXT and optional PDFs), builds dense +
 - Session-scoped ingestion: each session can have isolated uploaded document context.
 - Multiple interfaces: FastAPI (`/health`, `/query`, `/ingest/pdf`), Streamlit app(s), CLI.
 
+## Frontend Screenshots
+Main page:
+
+![Policy RAG main page](docs/screenshots/ui-main_page.png)
+
+Answer/output view:
+
+![Policy RAG output](docs/screenshots/ui-output.png)
+
 ## System Architecture
-```text
-Documents (TXT / PDF)
-        |
-        v
-Ingestion + Chunking
-(loaders.py)
-        |
-        v
-Index Build
-- Dense embeddings index
-- Lexical index
-(index_build.py)
-        |
-        v
-RAG Runtime
-- dense_retrieve
-- lexical_retrieve
-- hybrid_merge
-(rag_pipeline.py)
-        |
-        v
-LLM Answer Generation
-(generate.py)
-        |
-        v
-Interfaces
-- FastAPI
-- Streamlit
-- CLI
-```
+Architecture diagram: **To be added**.
 
 ## Repository Structure
 ```text
@@ -134,6 +117,7 @@ Optional toggles:
 ```dotenv
 API_BASE_URL="http://127.0.0.1:8000"
 SEED_POLICY_TXT="data/seed_policy.txt"
+REPO_URL="https://github.com/BohdanChuprynka"
 ALLOW_PDF_INGEST="false"
 EMBEDDING_CACHE_ENABLED="true"
 # EMBEDDING_CACHE_PATH="data/.cache/embeddings.sqlite3"
@@ -193,6 +177,85 @@ Interactive mode:
 ```bash
 python src/pipeline_cli.py --seed-txt data/seed_policy.txt
 ```
+
+## Docker
+The repository includes a production-leaning multi-stage `Dockerfile` and a `docker-compose.yml` service for the FastAPI backend.
+
+### Build and run with Docker Compose
+```bash
+cp .env.example .env
+# edit OPENAI_API_KEY in .env
+docker compose up --build
+```
+
+Backend will be available at:
+- `http://127.0.0.1:8000/health`
+
+### Run Streamlit with Dockerized backend
+Run Streamlit locally in a second terminal:
+```bash
+streamlit run src/streamlit_app.py
+```
+
+### Notes for Docker workflows
+- Compose currently starts the backend service only.
+- Backend container port mapping: `8000:8000`.
+- Runtime uses non-root user `app` (UID 10001) in the container.
+- If you change dependencies (`pyproject.toml` / `uv.lock`), rebuild the image with `--build`.
+
+## Advanced Usage
+Minimal advanced knobs you can tune beyond the API key.
+
+### 1) `.env` customization
+Common variables:
+
+```dotenv
+# Required
+OPENAI_API_KEY="your-key"
+
+# Network/UI
+API_BASE_URL="http://127.0.0.1:8000"
+REPO_URL="https://github.com/BohdanChuprynka"
+
+# Data and ingest
+SEED_POLICY_TXT="data/seed_policy.txt"
+ALLOW_PDF_INGEST="false"
+MAX_UPLOADS_PER_SESSION="2"
+MAX_UPLOAD_MB="15"
+
+# Retrieval/generation quality/cost
+ALPHA="0.5"
+HYBRID_TOPK="5"
+MAX_TOP_K="10"
+MODEL_NAME="gpt-4o-mini"
+EMBED_MODEL="text-embedding-3-large"
+MAX_TOKENS="700"
+
+# Chunking behavior
+CHUNK_SIZE="800"
+CHUNK_OVERLAP="100"
+MIN_CHUNK_CHARS="100"
+
+# Session and request limits
+SESSION_TTL_SECONDS="3600"
+MAX_QUESTION_CHARS="600"
+REQUEST_TIMEOUT_SHORT="15"
+REQUEST_TIMEOUT_LONG="60"
+
+# Embedding cache
+EMBEDDING_CACHE_ENABLED="true"
+# EMBEDDING_CACHE_PATH="data/.cache/embeddings.sqlite3"
+```
+
+### 2) Runtime query tuning (without restart)
+- In Streamlit, tune `Alpha` and `Top K` from the sidebar.
+- In API calls, pass `top_k` and `alpha` query params to `/query`.
+- Guardrails are enforced server-side (`MAX_TOP_K`, `MAX_QUESTION_CHARS`).
+
+### 3) Safe deployment defaults
+- Keep `ALLOW_PDF_INGEST=false` for public deployments.
+- Use session isolation via `X-Session-ID` when testing multi-user behavior.
+- Keep embedding cache enabled to reduce repeated embedding cost/latency.
 
 ## API Reference
 
@@ -261,10 +324,3 @@ If tests involving ingest are enabled, make sure your test environment matches A
   - Set `ALLOW_PDF_INGEST=true` for local testing.
 - "No documents ingested yet":
   - Provide `SEED_POLICY_TXT` or ingest a PDF into the active session.
-
-## Roadmap
-- Persist session/index state in external store.
-- Add authentication and stronger multi-tenant isolation.
-- Harden upload path and rate limiting.
-- Expand evaluation and retrieval quality benchmarking.
-- Add CI gates (tests, lint, type checks) and release automation.
