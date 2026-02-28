@@ -4,7 +4,17 @@ Hybrid Retrieval-Augmented Generation (RAG) assistant for policy documents.
 
 This project ingests policy content (seed TXT and optional PDFs), builds dense + lexical indexes, retrieves grounded evidence, and generates citation-aware answers through a FastAPI backend with Streamlit frontends.
 
+## Purpose
+New hires and frontline teams lose time when policy answers are buried in long documents, especially during uncommon situations.  
+This project turns company policy into a practical decision assistant: employees can ask what to do in a specific case and get a grounded answer with citations to the source policy text.
+
+Why this is valuable:
+- Improves speed and confidence for less experienced employees.
+- Reduces inconsistent policy interpretation across teams.
+- Supports safer, more compliant day-to-day decisions with traceable evidence.
+
 ## Table of Contents
+- [Recruiter Pitch](#recruiter-pitch)
 - [Overview](#overview)
 - [Frontend Screenshots](#frontend-screenshots)
 - [System Architecture](#system-architecture)
@@ -82,7 +92,7 @@ data/                          # Seed/sample documents
 
 ### 1) Clone and enter project
 ```bash
-git clone <your-repo-url>
+git clone <https://github.com/BohdanChuprynka/Policy-RAG.git>
 cd RAG-App
 ```
 
