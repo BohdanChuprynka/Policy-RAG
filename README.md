@@ -47,7 +47,17 @@ Answer/output view:
 ![Policy RAG output](docs/screenshots/ui-output.png)
 
 ## System Architecture
-Architecture diagram: **To be added**.
+C4 architecture guide: [`docs/architecture/c4-rag-architecture.md`](docs/architecture/c4-rag-architecture.md)
+
+| C4 Level | Scope | Status | Artifact |
+|---|---|---|---|
+| L1 | System Context | Available | `docs/architecture/l1-policy-architecture.png` |
+| L2 | Container | Planned | To be added |
+| L3 | Component (FastAPI backend) | Planned | To be added |
+
+L1 preview:
+
+![C4 L1 - Policy RAG App](docs/architecture/l1-policy-architecture.png)
 
 ## Repository Structure
 ```text
