@@ -1,4 +1,5 @@
 # Policy RAG App
+[![CI](https://github.com/BohdanChuprynka/Policy-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/BohdanChuprynka/Policy-RAG/actions/workflows/ci.yml)
 
 Hybrid Retrieval-Augmented Generation (RAG) assistant for policy documents.
 
@@ -325,6 +326,11 @@ curl -X POST "http://127.0.0.1:8000/ingest/pdf" \
 Run all tests:
 ```bash
 pytest -q
+```
+
+Run the same local quality gate used in CI:
+```bash
+OPENAI_API_KEY=test-key pytest -q
 ```
 
 If tests involving ingest are enabled, make sure your test environment matches API flags (for example, `ALLOW_PDF_INGEST`).

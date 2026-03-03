@@ -11,7 +11,6 @@ STATE = api_module.STATE
 
 @pytest.fixture(autouse=True)
 def reset_api_state():
-    STATE["pipeline"] = None
     STATE["sessions"] = {}
     yield
 
@@ -23,8 +22,8 @@ def test_health_starts_empty():
     assert r.status_code == 200
     data = r.json()
     assert data["ok"] is True
-    assert data["has_pipeline"] is False
-    assert data["num_chunks"] == 0
+    assert data["has_seed"] is False
+    assert data["total_chunks"] == 0
 
 
 def test_query_requires_ingest():
@@ -57,6 +56,7 @@ def test_ingest_pdf_then_query(monkeypatch):
 
     monkeypatch.setattr(api_module, "data_pipeline", fake_data_pipeline)
     monkeypatch.setattr(api_module, "rag_pipeline", fake_rag_pipeline)
+    monkeypatch.setattr(api_module.settings, "allow_pdf_ingest", True)
 
     pdf_path = "tests/fixtures/McDonalds_Policy.pdf" # change if needed
     with open(pdf_path, "rb") as f:
