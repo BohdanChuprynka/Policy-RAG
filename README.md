@@ -52,13 +52,11 @@ C4 architecture guide: [`docs/architecture/c4-rag-architecture.md`](docs/archite
 
 | C4 Level | Scope | Status | Artifact |
 |---|---|---|---|
-| L1 | System Context | Available | `docs/architecture/l1-policy-architecture.png` |
-| L2 | Container | Planned | To be added |
-| L3 | Component (FastAPI backend) | Planned | To be added |
+| L1 | System Context | Available | [`docs/architecture/l1-policy-architecture.png`](docs/architecture/l1-policy-architecture.png) |
+| L2 | Container | Available | [`docs/architecture/l2-policy-architecture.png`](docs/architecture/l2-policy-architecture.png) |
+| L3 | Component (FastAPI backend) | Available | [`docs/architecture/l3-policy-architecture.png`](docs/architecture/l3-policy-architecture.png) |
 
-L1 preview:
-
-![C4 L1 - Policy RAG App](docs/architecture/l1-policy-architecture.png)
+All architecture assets are stored in `docs/architecture/`.
 
 ## Repository Structure
 ```text
