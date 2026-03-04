@@ -1,145 +1,205 @@
-# C4 Architecture - Policy RAG App 
+  # C4 Architecture - Policy RAG App
+
+This document defines the production architecture represented by the C4 L1/L2/L3 diagrams in `docs/architecture/`.
+
+## 1) Architecture Scope
+
+The system provides policy question-answering with grounded evidence. It combines:
+- document ingestion (seed TXT and optional PDF upload),
+- hybrid retrieval (dense + lexical),
+- citation-aware generation,
+- session-scoped runtime state.
+
+Primary runtime paths:
+- Query path: user question -> retrieval -> grounded answer.
+- Ingestion path: document input -> chunking -> index rebuild -> session state update.
 
 ## 2) C4 Level 1 - System Context
 
-### People
-- Policy User (employee/recruiter/demo user)
+### Elements
+- `Policy User` (Person): asks questions, uploads policy PDFs, reviews citations.
+- `Policy RAG App` (Software System): end-to-end ingestion, retrieval, and answer generation.
+- `OpenAI API` (External System): embedding and chat-completion inference.
+- `Local Policy Documents` (External Data Source): seed TXT and uploaded PDF content.
 
-### Software System (Your system)
-- Policy RAG App
+### Relationship Labels
+1. `Policy User -> Policy RAG App`: "submits policy questions and optional PDF uploads"
+2. `Policy RAG App -> OpenAI API`: "calls embedding and chat-completion models"
+3. `Policy RAG App -> Local Policy Documents`: "reads seed TXT and uploaded policy files"
+4. `Policy RAG App -> Policy User`: "returns evidence-grounded answers with source citations"
 
-### External Systems
-- OpenAI API
-- Local Policy Documents (seed TXT + uploaded PDFs)
+### Context-Level Responsibilities
+- The app owns retrieval and citation correctness.
+- OpenAI API is used strictly for inference, not system state.
+- Policy files are treated as source-of-truth inputs to indexing.
 
-### Relationships (draw arrows with these labels)
-1. Policy User -> Policy RAG App: "asks policy questions and uploads PDFs"
-2. Policy RAG App -> OpenAI API: "requests embeddings and answer generation"
-3. Policy RAG App -> Local Policy Documents: "loads seed and uploaded policy content"
-4. Policy RAG App -> Policy User: "returns grounded answers with citations"
+## 3) C4 Level 2 - Container Architecture
 
----
+System boundary: `Policy RAG App`.
 
-## 3) C4 Level 2 - Container Diagram
+### Containers
+- `Streamlit UI` (`src/streamlit_app.py`)
+  - Browser-facing interaction layer.
+  - Sends `X-Session-ID` with API requests.
+  - Presents answer text and evidence sources.
 
-System boundary: **Policy RAG App**
+- `FastAPI Backend` (`src/policy_app/api.py`)
+  - API endpoints: `/health`, `/ingest/pdf`, `/query`.
+  - Orchestrates session lifecycle, ingestion, and query execution.
+  - Applies guardrails (`max_question_chars`, upload limits, `max_top_k`, `alpha` bounds).
 
-### Containers inside boundary
-- Streamlit UI (`src/streamlit_app.py`)
-  - Role: web UI for question asking and PDF upload
-- FastAPI Backend (`src/policy_app/api.py`)
-  - Role: ingest/query endpoints + session runtime
-- In-Memory Session Store (inside FastAPI process)
-  - Role: keeps per-session `PipelineData` (chunks + indexes)
-- SQLite Embedding Cache (`src/policy_app/storage/embedding_cache.py`)
-  - Role: caches embedding vectors to reduce repeat OpenAI calls
-- Local Data Files (`data/`)
-  - Role: seed policy text and temporary/ingested document content
+- `In-Memory Session Store` (in-process `STATE`)
+  - Holds session-scoped `PipelineData`.
+  - Tracks uploads, created/last_seen timestamps.
+  - Enforces TTL eviction.
 
-### External container/system
-- OpenAI API
+- `SQLite Embedding Cache` (`src/policy_app/storage/embedding_cache.py`)
+  - Keyed by hash of `{embed_model + text}`.
+  - Prevents repeated embedding requests.
+  - Persisted at `data/.cache/embeddings.sqlite3` by default.
 
-### Key relationships
-1. Policy User -> Streamlit UI: "uses app in browser"
-2. Streamlit UI -> FastAPI Backend: "HTTP `/health`, `/ingest/pdf`, `/query`"
-3. FastAPI Backend -> In-Memory Session Store: "creates/updates per-session pipeline artifacts"
-4. FastAPI Backend -> Local Data Files: "loads seed TXT, reads uploaded PDF temp files"
-5. FastAPI Backend -> SQLite Embedding Cache: "reads/writes embedding vectors"
-6. FastAPI Backend -> OpenAI API: "embeddings + chat completion"
-7. FastAPI Backend -> Streamlit UI: "query results with answer and sources"
+- `Local Data Files` (`data/`, temp upload files)
+  - Seed policy source (`seed_policy.txt`).
+  - Temporary upload staging for PDF ingestion.
 
----
+- `OpenAI API` (external)
+  - Embedding endpoint for dense index/query vectors.
+  - Chat completion endpoint for final answer generation.
 
-## 4) C4 Level 3 - Component Diagram (FastAPI Backend)
+### Container Relationship Labels
+1. `Policy User -> Streamlit UI`: "asks policy questions and uploads PDFs in browser"
+2. `Streamlit UI -> FastAPI Backend`: "calls `/health`, `/ingest/pdf`, `/query` with `X-Session-ID`"
+3. `FastAPI Backend -> In-Memory Session Store`: "creates, extends, and expires session `PipelineData`"
+4. `FastAPI Backend -> Local Data Files`: "loads `seed_policy.txt` and temporary uploaded PDFs"
+5. `FastAPI Backend -> SQLite Embedding Cache`: "checks and persists chunk/query embeddings"
+6. `FastAPI Backend -> OpenAI API`: "requests `text-embedding-3-large` and `gpt-4o-mini` responses"
+7. `FastAPI Backend -> Streamlit UI`: "returns answer text, cited sources, and context count"
 
-Container in focus: **FastAPI Backend**
+### Container Data Ownership
+- Streamlit owns transient UI state only.
+- FastAPI owns runtime orchestration and enforcement.
+- Session store owns per-session retrieval artifacts.
+- SQLite cache owns reusable embedding vectors.
 
-### Components
-- API Layer (`policy_app/api.py`)
-  - Endpoints: `/health`, `/ingest/pdf`, `/query`
-  - Session lifecycle and limits
-- Data Pipeline (`pipelines/data_pipeline.py`)
-  - Orchestrates chunk loading + index building
-- Loaders (`policy_app/ingest/loaders.py`)
-  - TXT/PDF loading, cleaning, chunking
-- Index Builder (`policy_app/ingest/index_build.py`)
-  - Builds dense matrix + lexical index
-- RAG Pipeline (`pipelines/rag_pipeline.py`)
-  - Orchestrates retrieval and generation for a question
-- Dense Retriever (`policy_app/retrieval/dense.py`)
-  - Embedding similarity search
-- Lexical Retriever (`policy_app/retrieval/lexical.py`)
-  - BM25-like keyword scoring
-- Hybrid Ranker (`policy_app/retrieval/hybrid.py`)
-  - Normalizes and fuses dense + lexical scores
-- Embedding Service (`policy_app/llm/embedding.py`)
-  - Calls OpenAI embeddings, uses cache
-- Answer Generator (`policy_app/llm/generate.py`)
-  - Builds evidence prompt + calls OpenAI chat model
-- Embedding Cache Adapter (`policy_app/storage/embedding_cache.py`)
-  - SQLite cache read/write
+## 4) C4 Level 3 - Component Architecture (FastAPI Backend)
 
-### Main query flow (number these arrows in Figma)
-1. API Layer -> RAG Pipeline: "submit question with top_k and alpha"
-2. RAG Pipeline -> Dense Retriever: "retrieve semantic hits"
-3. Dense Retriever -> Embedding Service: "embed user question"
-4. Embedding Service -> Embedding Cache Adapter: "lookup/store embeddings"
-5. Embedding Service -> OpenAI API: "request embeddings for misses"
-6. RAG Pipeline -> Lexical Retriever: "retrieve lexical hits"
-7. RAG Pipeline -> Hybrid Ranker: "merge and rank hits"
-8. RAG Pipeline -> Answer Generator: "generate grounded answer from evidence"
-9. Answer Generator -> OpenAI API: "chat completion with evidence packet"
-10. Answer Generator -> API Layer: "return answer + cited sources"
+Container in focus: `FastAPI Backend`.
 
-### Ingestion flow (secondary arrows)
-1. API Layer -> Data Pipeline: "ingest seed/PDF input"
-2. Data Pipeline -> Loaders: "load + clean + chunk documents"
-3. Data Pipeline -> Index Builder: "build dense and lexical indexes"
-4. Index Builder -> Embedding Service: "embed chunks for dense index"
-5. Embedding Service -> Embedding Cache Adapter/OpenAI API: "cache-aware embedding fetch"
-6. Data Pipeline -> API Layer: "return PipelineData"
-7. API Layer -> In-Memory Session Store: "save/extend session pipeline"
+### Components and Responsibilities
+- `API Layer` (`policy_app/api.py`)
+  - Validates request constraints.
+  - Resolves session identity.
+  - Delegates to ingestion/query pipelines.
 
----
+- `Data Pipeline` (`pipelines/data_pipeline.py`)
+  - Builds `PipelineData` from seed/PDF inputs.
+  - Supports append behavior through `extend_pipeline`.
 
-## 5) Figma Drawing Conventions (Simple + Professional)
+- `Loaders` (`policy_app/ingest/loaders.py`)
+  - Reads TXT/PDF input.
+  - Normalizes and cleans text.
+  - Splits into chunks (`chunk_size`, `chunk_overlap`, `min_chunk_chars`).
 
-Use these consistently:
+- `Index Builder` (`policy_app/ingest/index_build.py`)
+  - Dense index: embedding matrix + chunk ID metadata.
+  - Lexical index: tokenized docs, doc frequency, avg doc length.
 
-- Person: stick figure or rounded card
-- Software system boundary: large frame titled `Policy RAG App`
-- Containers: medium rounded rectangles
-- Components: small rounded rectangles
-- External systems: gray rectangles outside boundary
-- Data stores: cylinder shape (or rectangle with `[Data Store]` tag)
-- Arrow text: always verb phrase, 3-8 words
-- Keep left-to-right flow where possible
+- `RAG Pipeline` (`pipelines/rag_pipeline.py`)
+  - Executes retrieval orchestration and answer generation.
+  - Binds merged retrieval hits to canonical chunks.
 
-Suggested color legend:
-- UI: blue
-- Backend orchestration: green
-- Retrieval/LLM components: orange
-- Data stores: gray
-- External systems: dark gray
+- `Dense Retriever` (`policy_app/retrieval/dense.py`)
+  - Embeds question and computes vector similarity.
+  - Returns top-N semantic hits.
 
----
+- `Lexical Retriever` (`policy_app/retrieval/lexical.py`)
+  - Token-based BM25-style scoring.
+  - Returns top-M lexical hits.
 
-## 6) GitHub-Ready Export Checklist
+- `Hybrid Ranker` (`policy_app/retrieval/hybrid.py`)
+  - Min-max normalization per retriever.
+  - Weighted fusion: `fused = alpha*dense + (1-alpha)*lexical`.
 
-Before exporting from Figma:
+- `Embedding Service` (`policy_app/llm/embedding.py`)
+  - Batch embedding requests.
+  - Cache-first lookup, OpenAI fallback.
+  - L2 normalization for dense retrieval math stability.
 
-1. Add title with level and date, e.g. `C4 Level 2 - Policy RAG App - 2026-03-01`
-2. Add small legend (colors + shape meaning)
-3. Ensure text is readable at 100% zoom
-4. Keep arrow crossings minimal
-5. Export PNG (2x) for README
-6. Save source `.fig` for future updates
+- `Answer Generator` (`policy_app/llm/generate.py`)
+  - Constructs evidence packet with stable `[n]` source IDs.
+  - Calls chat completion with constrained system prompt.
+  - Parses citation markers and maps them to source metadata.
 
----
+- `Embedding Cache Adapter` (`policy_app/storage/embedding_cache.py`)
+  - SQLite read/write adapter for vector cache.
+  - Ensures dimensional consistency checks.
 
-## 7) Scope Notes (So You Stay Accurate)
+### Main Query Flow
+1. `API Layer -> RAG Pipeline`: "forwards question with bounded `top_k` and `alpha`"
+2. `RAG Pipeline -> Dense Retriever`: "runs semantic retrieval over normalized vector index"
+3. `Dense Retriever -> Embedding Service`: "embeds the user query text"
+4. `Embedding Service -> Embedding Cache Adapter`: "fetches cached vector or stores new vector"
+5. `Embedding Service -> OpenAI API`: "requests embedding when cache miss occurs"
+6. `RAG Pipeline -> Lexical Retriever`: "runs BM25-style retrieval over tokenized chunks"
+7. `RAG Pipeline -> Hybrid Ranker`: "min-max normalizes and fuses dense+lexical scores"
+8. `RAG Pipeline -> Answer Generator`: "passes top evidence chunks for grounded generation"
+9. `Answer Generator -> OpenAI API`: "requests chat completion with evidence-formatted prompt"
+10. `Answer Generator -> API Layer`: "returns answer, citations, and `num_contexts`"
 
-- Current runtime session state is in-memory in FastAPI (`STATE`), not Redis/Postgres.
-- Embedding cache is SQLite-based and optional via settings.
-- Retrieval is hybrid: dense + lexical fused by weighted merge (`alpha`).
-- Answers are citation-aware and based on retrieved evidence chunks.
+### Ingestion Flow
+1. `API Layer -> Data Pipeline`: "starts ingestion for seed TXT or uploaded PDF"
+2. `Data Pipeline -> Loaders`: "loads files, normalizes text, removes boilerplate, chunks content"
+3. `Data Pipeline -> Index Builder`: "builds dense matrix and lexical metadata indexes"
+4. `Index Builder -> Embedding Service`: "embeds chunk texts for dense index creation"
+5. `Embedding Service -> Embedding Cache Adapter/OpenAI API`: "resolves embeddings via cache-first OpenAI fallback"
+6. `Data Pipeline -> API Layer`: "returns `PipelineData` (chunks, dense index, lexical index)"
+7. `API Layer -> In-Memory Session Store`: "stores or extends session-scoped pipeline state"
+
+## 5) Interchange Contracts
+
+### API Contracts
+- `/ingest/pdf`:
+  - Input: multipart PDF + optional `X-Session-ID`.
+  - Output: session ID, added chunk count, total chunks, upload usage.
+- `/query`:
+  - Input: `question`, `top_k`, `alpha` + optional `X-Session-ID`.
+  - Output (`QueryResult`): `answer`, `sources[]`, `num_contexts`.
+
+### Pipeline Artifact Contract
+`PipelineData` bundles:
+- canonical `chunks`,
+- `dense_matrix` + `dense_meta`,
+- lexical index (`tokenized_docs`, `doc_freq`, `avg_doc_length`, `chunk_ids`).
+
+This artifact is the unit of session retrieval state.
+
+## 6) Runtime and Operational Characteristics
+
+### Session Isolation and Lifecycle
+- Session keying by `X-Session-ID`; fallback behavior supports seeded default session.
+- TTL-based cleanup removes stale non-seed sessions.
+- Upload count limits prevent unbounded ingestion growth per session.
+
+### Performance Model
+- Query latency is dominated by embedding/completion inference.
+- SQLite cache reduces repeated embedding latency and cost.
+- Dense and lexical retrieval run in-process over prepared indexes.
+
+### Consistency and Safety Controls
+- `top_k` and `alpha` are clamped to configured bounds.
+- Question length and upload size are bounded.
+- PDF ingest can be disabled at deployment level.
+- Prompt policy requires evidence-only answering and citation references.
+
+### Failure Behavior
+- Missing/invalid input is rejected early at API layer.
+- Empty ingestion result fails fast (`No chunks loaded` path).
+- Cache dimension mismatches are skipped to avoid invalid vector reuse.
+- If model output is empty, response falls back to deterministic not-found text.
+
+## 7) Architectural Notes
+
+- Runtime session state is intentionally in-memory for simplicity and low operational overhead.
+- Embedding cache is persistent and optional, decoupled from session memory.
+- Retrieval strategy is intentionally hybrid to balance semantic recall and lexical precision.
+- Citation mapping is deterministic because evidence packet ordering is stable.
