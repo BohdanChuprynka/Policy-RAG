@@ -58,6 +58,19 @@ C4 architecture guide: [`docs/architecture/c4-rag-architecture.md`](docs/archite
 
 All architecture assets are stored in `docs/architecture/`.
 
+### C4 Diagram Previews
+L1 - System Context
+
+![C4 L1 - System Context](docs/architecture/l1-policy-architecture.png)
+
+L2 - Container
+
+![C4 L2 - Container](docs/architecture/l2-policy-architecture.png)
+
+L3 - Component (FastAPI Backend)
+
+![C4 L3 - Component](docs/architecture/l3-policy-architecture.png)
+
 ## Repository Structure
 ```text
 src/
