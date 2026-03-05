@@ -1,0 +1,32 @@
+# syntax=docker/dockerfile:1.7
+
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
+    STREAMLIT_SERVER_PORT=8501 \
+    PYTHONPATH=/app/src
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:0.6.6 /uv /usr/local/bin/uv
+
+COPY pyproject.toml uv.lock ./
+COPY src ./src
+COPY data ./data
+
+RUN uv venv /opt/venv \
+    && uv pip install --python /opt/venv/bin/python . streamlit requests
+
+ENV PATH="/opt/venv/bin:${PATH}"
+
+EXPOSE 8501
+
+CMD ["sh", "-c", "streamlit run src/streamlit_app.py --server.address 0.0.0.0 --server.port ${STREAMLIT_SERVER_PORT:-8501}"]
