@@ -30,6 +30,13 @@ def _format_error(exc: Exception) -> str:
     if isinstance(exc, requests.HTTPError):
         response = exc.response
         if response is not None:
+            content_type = response.headers.get("content-type", "").lower()
+            if "text/html" in content_type:
+                return (
+                    f"{response.status_code}: Received HTML from backend URL "
+                    "(likely proxy/CDN challenge page). Verify API_BASE_URL points "
+                    "to the backend service and disable bot challenge for API paths."
+                )
             try:
                 payload = response.json()
                 detail = payload.get("detail") if isinstance(payload, dict) else payload
@@ -39,8 +46,9 @@ def _format_error(exc: Exception) -> str:
     return str(exc)
 
 
-def api_get_health() -> dict:
-    r = requests.get(f"{settings.api_base_url}/health", timeout=settings.request_timeout_short)
+@st.cache_data(ttl=120, show_spinner=False)
+def api_get_health(api_base_url: str) -> dict:
+    r = requests.get(f"{api_base_url}/health", timeout=settings.request_timeout_short)
     r.raise_for_status()
     return r.json()
 
@@ -58,7 +66,7 @@ def api_query(question: str, top_k: int, alpha: float) -> dict:
 
 def refresh_health() -> str | None:
     try:
-        st.session_state.health = api_get_health()
+        st.session_state.health = api_get_health(settings.api_base_url)
         return None
     except requests.RequestException as exc:
         st.session_state.health = None
@@ -72,17 +80,13 @@ if not settings.api_base_url:
     st.error("`API_BASE_URL` is not configured for this cloud app.")
     st.stop()
 
-error = refresh_health() if st.session_state.health is None else None
-if error:
-    st.error(f"Backend unreachable: {error}")
-
 with st.sidebar:
     st.header("Session")
     st.caption(f"Session: `{st.session_state.session_id[:8]}...`")
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Refresh", use_container_width=True):
+        if st.button("Check Backend", use_container_width=True):
             error = refresh_health()
             if error:
                 st.error(error)

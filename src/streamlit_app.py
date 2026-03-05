@@ -35,6 +35,13 @@ def _format_error(exc: Exception) -> str:
     if isinstance(exc, requests.HTTPError):
         response = exc.response
         if response is not None:
+            content_type = response.headers.get("content-type", "").lower()
+            if "text/html" in content_type:
+                return (
+                    f"{response.status_code}: Received HTML from backend URL "
+                    "(likely proxy/CDN challenge page). Verify API_BASE_URL points "
+                    "to the backend service and disable bot challenge for API paths."
+                )
             try:
                 payload = response.json()
                 detail = payload.get("detail") if isinstance(payload, dict) else payload
@@ -44,8 +51,9 @@ def _format_error(exc: Exception) -> str:
     return str(exc)
 
 
-def api_get_health() -> dict:
-    r = requests.get(f"{st.session_state.api_base_url}/health", timeout=settings.request_timeout_short)
+@st.cache_data(ttl=120, show_spinner=False)
+def api_get_health(api_base_url: str) -> dict:
+    r = requests.get(f"{api_base_url}/health", timeout=settings.request_timeout_short)
     r.raise_for_status()
     return r.json()
 
@@ -81,7 +89,7 @@ def api_ingest_pdf(uploaded_file) -> dict:
 
 def refresh_health() -> str | None:
     try:
-        st.session_state.health = api_get_health()
+        st.session_state.health = api_get_health(st.session_state.api_base_url)
         return None
     except requests.RequestException as exc:
         st.session_state.health = None
@@ -94,10 +102,6 @@ def backend_help_block(error_text: str) -> None:
     st.code("uvicorn policy_app.api:app --app-dir src --reload --port 8000", language="bash")
 
 
-startup_error = None
-if st.session_state.health is None:
-    startup_error = refresh_health()
-
 st.title("Policy RAG Assistant")
 st.caption("Recruiter demo: upload policy docs, ask questions, inspect grounded sources.")
 
@@ -108,8 +112,10 @@ with st.sidebar:
 
     action_col1, action_col2 = st.columns(2)
     with action_col1:
-        if st.button("Refresh", use_container_width=True):
+        if st.button("Check Backend", use_container_width=True):
             startup_error = refresh_health()
+            if startup_error:
+                st.error(startup_error)
     with action_col2:
         if st.button("New Session", use_container_width=True):
             st.session_state.session_id = str(uuid.uuid4())
@@ -128,9 +134,6 @@ with st.sidebar:
     st.subheader("Retrieval Settings")
     alpha = st.slider("Alpha", min_value=0.0, max_value=1.0, value=settings.alpha, step=0.05)
     top_k = st.slider("Top K", min_value=1, max_value=settings.max_top_k, value=settings.hybrid_topk, step=1)
-
-if startup_error:
-    backend_help_block(startup_error)
 
 info_col1, info_col2, info_col3 = st.columns(3)
 info_col1.info("1) Upload a PDF")
