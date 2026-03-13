@@ -208,6 +208,7 @@ __marimo__/
 
 
 
-# Custom: 
-.DS_Store   
+# Custom:
+.DS_Store
 test.ipynb
+requirements-ci.txt
