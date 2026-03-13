@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/BohdanChuprynka/Policy-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/BohdanChuprynka/Policy-RAG/actions/workflows/ci.yml)
 
-A hybrid Retrieval-Augmented Generation (RAG) assistant that turns policy documents into a practical decision tool — ask a question in plain language, get a grounded, citation-backed answer.
+**[Live Demo](https://frontend-production-7bfc.up.railway.app/)** · A hybrid Retrieval-Augmented Generation (RAG) assistant that turns policy documents into a practical decision tool — ask a question in plain language, get a grounded, citation-backed answer.
 
 ---
 
