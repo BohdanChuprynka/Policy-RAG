@@ -85,3 +85,65 @@ def test_ingest_pdf_then_query(monkeypatch):
     out = q.json()
     assert "answer" in out
     assert "sources" in out
+
+
+def test_ingest_pdf_rejected_when_disabled():
+    client = TestClient(app)
+
+    pdf_path = "tests/fixtures/McDonalds_Policy.pdf"
+    with open(pdf_path, "rb") as f:
+        r = client.post("/ingest/pdf", files={"file": ("doc.pdf", f, "application/pdf")})
+
+    assert r.status_code == 403
+    assert "disabled" in r.json()["detail"].lower()
+
+
+def test_ingest_non_pdf_rejected(monkeypatch):
+    client = TestClient(app)
+    monkeypatch.setattr(api_module.settings, "allow_pdf_ingest", True)
+
+    r = client.post(
+        "/ingest/pdf",
+        files={"file": ("notes.txt", b"plain text", "text/plain")},
+    )
+    assert r.status_code == 400
+    assert "PDF" in r.json()["detail"]
+
+
+def test_query_too_long(monkeypatch):
+    client = TestClient(app)
+
+    async def fake_data_pipeline(seed_txt=None, pdf_path=None):
+        return _make_fake_pipeline()
+
+    async def fake_rag_pipeline(pipeline, question, *, top_k, alpha):
+        return {"answer": "ok", "sources": [], "num_contexts": 0}
+
+    monkeypatch.setattr(api_module, "data_pipeline", fake_data_pipeline)
+    monkeypatch.setattr(api_module, "rag_pipeline", fake_rag_pipeline)
+    monkeypatch.setattr(api_module.settings, "allow_pdf_ingest", True)
+
+    pdf_path = "tests/fixtures/McDonalds_Policy.pdf"
+    with open(pdf_path, "rb") as f:
+        ingest = client.post("/ingest/pdf", files={"file": ("doc.pdf", f, "application/pdf")})
+    sid = ingest.json()["session_id"]
+
+    long_question = "x" * (api_module.settings.max_question_chars + 1)
+    r = client.post(
+        "/query",
+        params={"question": long_question},
+        headers={"X-Session-ID": sid},
+    )
+    assert r.status_code == 400
+    assert "too long" in r.json()["detail"].lower()
+
+
+def test_health_returns_valid_schema():
+    client = TestClient(app)
+
+    r = client.get("/health")
+    data = r.json()
+    assert "ok" in data
+    assert "num_sessions" in data
+    assert "has_seed" in data
+    assert "total_chunks" in data
