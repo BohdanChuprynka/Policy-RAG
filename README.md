@@ -2,41 +2,43 @@
 
 [![CI](https://github.com/BohdanChuprynka/Policy-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/BohdanChuprynka/Policy-RAG/actions/workflows/ci.yml)
 
-A hybrid Retrieval-Augmented Generation (RAG) assistant that turns policy documents into a practical decision tool. Employees ask questions in plain language and get grounded, citation-backed answers drawn directly from source policy text.
+A hybrid Retrieval-Augmented Generation (RAG) assistant that turns policy documents into a practical decision tool — ask a question in plain language, get a grounded, citation-backed answer.
+
+---
+
+## Demo
+
+![Policy RAG — main page](docs/screenshots/ui-main_page.png)
+
+![Policy RAG — answer with cited sources](docs/screenshots/ui-output.png)
+
+---
+
+## System Architecture (C4)
+
+### L1 — System Context
+
+![C4 L1 — System Context](docs/architecture/l1-policy-architecture.png)
+
+### L2 — Container
+
+![C4 L2 — Container](docs/architecture/l2-policy-architecture.png)
+
+### L3 — Component (FastAPI Backend)
+
+![C4 L3 — Component](docs/architecture/l3-policy-architecture.png)
+
+> Full C4 documentation: [`docs/architecture/c4-rag-architecture.md`](docs/architecture/c4-rag-architecture.md)
+
+---
 
 ## Why This Exists
 
-New hires and frontline teams lose time when policy answers are buried in long documents, especially during uncommon situations. This project solves that:
+New hires and frontline teams lose time when policy answers are buried in long documents. This project solves that:
 
 - **Speed** — instant, grounded answers instead of manual document search.
 - **Consistency** — reduces divergent policy interpretation across teams.
 - **Traceability** — every claim cites the source paragraph, so answers are auditable.
-
----
-
-## Screenshots
-
-| Main page | Answer view |
-|-----------|-------------|
-| ![Main](docs/screenshots/ui-main_page.png) | ![Output](docs/screenshots/ui-output.png) |
-
----
-
-## Architecture
-
-Full C4 architecture documentation: [`docs/architecture/c4-rag-architecture.md`](docs/architecture/c4-rag-architecture.md)
-
-### L1 — System Context
-
-![C4 L1 - System Context](docs/architecture/l1-policy-architecture.png)
-
-### L2 — Container
-
-![C4 L2 - Container](docs/architecture/l2-policy-architecture.png)
-
-### L3 — Component (FastAPI Backend)
-
-![C4 L3 - Component](docs/architecture/l3-policy-architecture.png)
 
 ---
 
