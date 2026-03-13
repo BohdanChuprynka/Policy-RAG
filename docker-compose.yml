@@ -1,4 +1,18 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: policy-rag-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
@@ -8,9 +22,14 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
     command: ["sh", "-c", "uvicorn policy_app.api:app --app-dir src --host 0.0.0.0 --port ${PORT:-8000}"]
     ports:
       - "${PORT:-8000}:${PORT:-8000}"
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import os,urllib.request; p=os.getenv('PORT','8000'); urllib.request.urlopen(f'http://localhost:{p}/health', timeout=5)\""]
       interval: 20s
@@ -34,3 +53,6 @@ services:
       - backend
     ports:
       - "${STREAMLIT_PORT:-8501}:${STREAMLIT_PORT:-8501}"
+
+volumes:
+  redis-data:

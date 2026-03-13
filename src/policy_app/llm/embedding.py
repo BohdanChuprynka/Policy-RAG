@@ -1,6 +1,6 @@
 from typing import Dict, List
 import numpy as np
-from openai import OpenAI
+from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
 from policy_app.config import settings
@@ -9,10 +9,10 @@ from policy_app.utils.text import batch_items
 
 load_dotenv()
 
-client = OpenAI()
+client = AsyncOpenAI()
 
 
-def embed_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
+async def embed_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
     if not texts:
         return np.zeros((0, settings.embed_dim), dtype=np.float32)
 
@@ -31,7 +31,7 @@ def embed_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
         fetched: Dict[str, np.ndarray] = {}
         idx = 0
         for batch in batch_items(missing_texts, batch_size):
-            resp = client.embeddings.create(
+            resp = await client.embeddings.create(
                 model=settings.embed_model,
                 input=batch,
             )

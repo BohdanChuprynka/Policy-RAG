@@ -19,7 +19,11 @@ dependencies = [
     "python-multipart",
     "llama-index-core",
     "llama-index-readers-file",
+    "redis>=5.0",
 ]
+
+[project.optional-dependencies]
+test = ["pytest", "httpx", "fakeredis"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

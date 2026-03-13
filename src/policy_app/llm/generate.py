@@ -1,12 +1,12 @@
 from typing import List, Optional
 import re
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from policy_app.config import settings
 from policy_app.models import Chunk, QueryResult, SourceRef
 
-client = OpenAI()
+client = AsyncOpenAI()
 
 _CIT_RE = re.compile(r"\[(\d+)\]") 
 
@@ -43,12 +43,12 @@ def _extract_cited_source_numbers(answer: str) -> List[int]:
     return out
 
 
-def answer_question(question: str, evidence: List[Chunk]) -> QueryResult:
+async def answer_question(question: str, evidence: List[Chunk]) -> QueryResult:
     context = make_context(evidence)
 
     user_prompt = f"Question:\n{question}\n\nEvidence:\n{context}"
 
-    resp = client.chat.completions.create(
+    resp = await client.chat.completions.create(
         model=settings.model_name,
         messages=[
             {"role": "system", "content": settings.system_prompt},

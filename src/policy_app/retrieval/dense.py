@@ -6,7 +6,7 @@ from policy_app.llm.embedding import embed_texts, l2_normalize
 from policy_app.config import settings
 
 
-def dense_retrieve(
+async def dense_retrieve(
     question: str,
     vectors: np.ndarray,
     meta: DenseIndexMeta,
@@ -18,7 +18,7 @@ def dense_retrieve(
     if vectors.size == 0:
         return []
 
-    q = embed_texts([question], batch_size=1)
+    q = await embed_texts([question], batch_size=1)
     q = l2_normalize(q)
 
     scores = (vectors @ q.T).squeeze()

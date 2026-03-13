@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
     api_base_url: str = Field("http://127.0.0.1:8000", alias="API_BASE_URL")
     repo_url: str = Field("https://github.com/BohdanChuprynka", alias="REPO_URL")
+    redis_url: str = Field("redis://localhost:6379/0", alias="REDIS_URL")
 
 
     # --- OpenAI models ---

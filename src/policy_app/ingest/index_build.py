@@ -11,12 +11,12 @@ from policy_app.utils.text import tokenize
 def make_chunk_lookup(chunks: List[Chunk]) -> Dict[str, Chunk]:
     return {c.chunk_id: c for c in chunks}
 
-def build_dense_index(chunks: List[Chunk]) -> Tuple[np.ndarray, DenseIndexMeta]:
+async def build_dense_index(chunks: List[Chunk]) -> Tuple[np.ndarray, DenseIndexMeta]:
     if not chunks:
         empty = np.zeros((0, settings.embed_dim), dtype=np.float32)
         return (empty, DenseIndexMeta(chunk_ids=[]))
 
-    embeddings = embed_texts([c.text for c in chunks])
+    embeddings = await embed_texts([c.text for c in chunks])
     norm_embeds = l2_normalize(embeddings)
 
     meta = DenseIndexMeta(chunk_ids=[c.chunk_id for c in chunks])

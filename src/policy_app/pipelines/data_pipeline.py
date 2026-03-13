@@ -10,8 +10,8 @@ from policy_app.models import Chunk, PipelineData
 
 
 
-def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineData:
-    """ 
+async def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineData:
+    """
     Accepts paths and outputs a PipelineData object with chunks required to run the RAG pipeline.
     """
 
@@ -29,18 +29,18 @@ def data_pipeline(seed_txt: Optional[str], pdf_path: Optional[str]) -> PipelineD
     if not chunks:
         raise ValueError("No chunks loaded")
 
-    # Build dense index
-    dense_matrix, dense_meta = build_dense_index(chunks)
+    # Build dense index (async — calls OpenAI embedding API)
+    dense_matrix, dense_meta = await build_dense_index(chunks)
 
-    # Build lexical index
+    # Build lexical index (pure computation, stays sync)
     lexical = build_lexical_index(chunks)
 
     return PipelineData(chunks=chunks, dense_meta=dense_meta, dense_matrix=dense_matrix, lexical=lexical)
 
 
-def extend_pipeline(pipeline: PipelineData, new_pipeline: PipelineData) -> PipelineData:  # used in api.py
+async def extend_pipeline(pipeline: PipelineData, new_pipeline: PipelineData) -> PipelineData:  # used in api.py
     combined_chunks = pipeline.chunks + new_pipeline.chunks
-    dense_matrix, dense_meta = build_dense_index(combined_chunks)
+    dense_matrix, dense_meta = await build_dense_index(combined_chunks)
     lexical = build_lexical_index(combined_chunks)
     return PipelineData(
         chunks=combined_chunks,

@@ -1,40 +1,24 @@
 from __future__ import annotations
 
-from typing import Dict
 from contextlib import asynccontextmanager
 import uuid
 from pathlib import Path
-import time
 import tempfile
 import logging
+import os
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 
 from policy_app.models import QueryResult
 from policy_app.config import settings
-from pipelines.data_pipeline import data_pipeline, extend_pipeline  
-from pipelines.rag_pipeline import rag_pipeline
+from policy_app.storage import session_store
+from policy_app.pipelines.data_pipeline import data_pipeline, extend_pipeline
+from policy_app.pipelines.rag_pipeline import rag_pipeline
 
 SESSION_HEADER = "X-Session-ID"
 logger = logging.getLogger(__name__)
 
-STATE: Dict[str, dict] = {
-    "sessions": {}  # session_id -> {pipeline, uploads, timestamps}
-}
 
-def _cleanup_expired_sessions() -> None:
-    now = time.time()
-    expired = []
-
-    for sid, data in STATE["sessions"].items():
-        if sid == "seed":
-            continue
-        if now - data["last_seen_unix"] > settings.session_ttl_seconds:
-            expired.append(sid)
-
-    for sid in expired:
-        del STATE["sessions"][sid]
-    
 def _resolve_session_id(session_id: str | None) -> str:
     if session_id and session_id.strip():
         sid = session_id.strip()
@@ -44,61 +28,58 @@ def _resolve_session_id(session_id: str | None) -> str:
 
     return str(uuid.uuid4())
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize session store
-    STATE["sessions"] = {}
+    # Connect to Redis
+    await session_store.init()
 
+    # Build and persist seed pipeline
     seed_path = settings.seed_policy_txt or (settings.data_dir / "seed_policy.txt")
 
     if seed_path and Path(seed_path).is_file():
         try:
-            pipeline = data_pipeline(seed_txt=str(seed_path), pdf_path=None)
+            pipeline = await data_pipeline(seed_txt=str(seed_path), pdf_path=None)
         except ValueError as exc:
             logger.warning("Seed policy exists but produced no chunks: %s", exc)
         except Exception:
             logger.exception("Seed policy failed to load from %s", seed_path)
         else:
-            STATE["sessions"]["seed"] = {
-                "pipeline": pipeline,
-                "uploads": 0,
-                "created_unix": time.time(),
-                "last_seen_unix": time.time(),
-            }
-
+            await session_store.save_session("seed", pipeline, uploads=0)
     else:
         logger.warning("Seed policy file not found at %s", seed_path)
 
     yield
 
+    # Graceful shutdown
+    await session_store.close()
+
+
 app = FastAPI(title="Policy RAG API", version="0.1.0", lifespan=lifespan)
 
-@app.get("/health")
-def health() -> dict:
-    sessions = STATE.get("sessions", {})
 
-    total_chunks = 0
-    for s in sessions.values():
-        pipeline = s.get("pipeline")
-        if pipeline:
-            total_chunks += len(pipeline.chunks)
+@app.get("/health")
+async def health() -> dict:
+    num_sessions = await session_store.session_count()
+    has_seed = await session_store.has_seed()
+    total_chunks = await session_store.seed_chunk_count() if has_seed else 0
 
     return {
         "ok": True,
-        "num_sessions": len(sessions),
-        "has_seed": "seed" in sessions,
+        "num_sessions": num_sessions,
+        "has_seed": has_seed,
         "total_chunks": total_chunks,
     }
+
 
 @app.post("/ingest/pdf")
 async def ingest_pdf(
     file: UploadFile = File(...),
-    session_id : str | None = Header(default=None, alias=SESSION_HEADER),
+    session_id: str | None = Header(default=None, alias=SESSION_HEADER),
 ):
     if not settings.allow_pdf_ingest:
         raise HTTPException(403, "PDF ingest is disabled for this deployment.")
 
-    _cleanup_expired_sessions()
     sid = _resolve_session_id(session_id)
 
     file_bytes = await file.read()
@@ -112,56 +93,61 @@ async def ingest_pdf(
         tmp.write(file_bytes)
         tmp_path = tmp.name
 
-    session = STATE["sessions"].get(sid)
+    try:
+        existing = await session_store.get_session(sid)
 
-    if session is None:
-        pipeline = data_pipeline(seed_txt=None, pdf_path=tmp_path)
+        if existing is None:
+            pipeline = await data_pipeline(seed_txt=None, pdf_path=tmp_path)
+            uploads = 1
+            await session_store.save_session(sid, pipeline, uploads)
 
-        STATE["sessions"][sid] = {
-            "pipeline": pipeline,
-            "uploads": 1,
-            "created_unix": time.time(),
-            "last_seen_unix": time.time(),
-        }
+            added = len(pipeline.chunks)
+            total = len(pipeline.chunks)
+        else:
+            current_pipeline, current_uploads = existing
 
-        added = len(pipeline.chunks)
-        total = len(pipeline.chunks)
+            if current_uploads >= settings.max_uploads_per_session:
+                raise HTTPException(429, "Upload limit reached for this session")
 
-    else:
-        if session["uploads"] >= settings.max_uploads_per_session:
-            raise HTTPException(429, "Upload limit reached for this session")
+            new_pipeline = await data_pipeline(seed_txt=None, pdf_path=tmp_path)
+            extended = await extend_pipeline(current_pipeline, new_pipeline)
 
-        new_pipeline = data_pipeline(seed_txt=None, pdf_path=tmp_path)
-        extended = extend_pipeline(session["pipeline"], new_pipeline)
+            uploads = current_uploads + 1
+            await session_store.save_session(sid, extended, uploads)
 
-        session["pipeline"] = extended
-        session["uploads"] += 1
-        session["last_seen_unix"] = time.time()
-
-        added = len(new_pipeline.chunks)
-        total = len(extended.chunks)
+            added = len(new_pipeline.chunks)
+            total = len(extended.chunks)
+    finally:
+        os.unlink(tmp_path)
 
     return {
-    "ok": True,
-    "session_id": sid,
-    "added_chunks": added,
-    "total_chunks": total,
-    "uploads_used": STATE["sessions"][sid]["uploads"],
-    "uploads_limit": settings.max_uploads_per_session,
-}
+        "ok": True,
+        "session_id": sid,
+        "added_chunks": added,
+        "total_chunks": total,
+        "uploads_used": uploads,
+        "uploads_limit": settings.max_uploads_per_session,
+    }
+
 
 @app.post("/query", response_model=QueryResult)
-def query(question: str,
-          top_k: int = settings.hybrid_topk, 
-          alpha: float = settings.alpha,
-          session_id: str | None = Header(default=None, alias=SESSION_HEADER)
+async def query(
+    question: str,
+    top_k: int = settings.hybrid_topk,
+    alpha: float = settings.alpha,
+    session_id: str | None = Header(default=None, alias=SESSION_HEADER),
 ) -> QueryResult:
-    _cleanup_expired_sessions()
     sid = _resolve_session_id(session_id)
-    session = STATE["sessions"].get(sid) or STATE["sessions"].get("seed")
+
+    # Try user session first, fall back to seed
+    session = await session_store.get_session(sid)
+    if session is None:
+        session = await session_store.get_session("seed")
 
     if session is None:
         raise HTTPException(400, "No documents ingested yet.")
+
+    pipeline, _ = session
 
     if len(question) > settings.max_question_chars:
         raise HTTPException(400, "Question too long.")
@@ -169,9 +155,6 @@ def query(question: str,
     top_k = min(top_k, settings.max_top_k)
     alpha = max(0.0, min(1.0, alpha))
 
-    result = rag_pipeline(session["pipeline"], question, top_k=top_k, alpha=alpha)
-    
-    session["last_seen_unix"] = time.time()
+    result = await rag_pipeline(pipeline, question, top_k=top_k, alpha=alpha)
 
     return result
-    
