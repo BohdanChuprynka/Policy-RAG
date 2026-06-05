@@ -1,0 +1,122 @@
+{
+  "_meta": {
+    "source_doc": "data/McDonalds_Policy.pdf",
+    "doc_pages": 40,
+    "created": "2026-05-06",
+    "stratification": {
+      "easy": 4,
+      "medium": 3,
+      "hard": 1,
+      "adversarial_unanswerable": 2
+    },
+    "notes": "Each `ground_truth_contexts` item is a verbatim or near-verbatim snippet from the source PDF that supports the ground-truth answer. Used for Ragas context_recall computation. Adversarial items have an empty `ground_truth_contexts` list — the answer should be the system's standard 'Not found in provided policies.' refusal."
+  },
+  "items": [
+    {
+      "id": "q1",
+      "question": "What are the four departments in a McDonald's restaurant?",
+      "ground_truth": "The four departments are People, Kitchen, Guest Service, and General Manager.",
+      "ground_truth_contexts": [
+        "Department Manager Responsible for a specific department within the restaurant. People, Kitchen, and Guest Service, and General Manager are the 4 departments."
+      ],
+      "difficulty": "easy",
+      "tag": "answerable",
+      "topic": "advancement"
+    },
+    {
+      "id": "q2",
+      "question": "When does the policy require employees to clock out during their shift?",
+      "ground_truth": "Employees must clock out at the beginning of their meal/break period, at the end of their shift after advising the shift manager, and whenever they leave the building on non-Company business.",
+      "ground_truth_contexts": [
+        "2. Be sure you clock out at the beginning of your meal/break period. 3. Be sure you clock in at the end of your meal/break period. 4. Be sure you clock out at the end of your shift after advising the shift manager you are scheduled to clock-out. 5. If you leave the building on non-Company business, you must clock out."
+      ],
+      "difficulty": "easy",
+      "tag": "answerable",
+      "topic": "time_recording"
+    },
+    {
+      "id": "q3",
+      "question": "If someone calls asking for an employment reference about a former employee, what should I do?",
+      "ground_truth": "Direct the request to the Owner. Employees are not to provide any reference regarding a current or former employee's employment with the Company.",
+      "ground_truth_contexts": [
+        "The Company's reference policy is that employees are not to provide any reference regarding a current or former employee's employment with the Company. Any request for a reference or employment history of any kind should be directed to the Owner."
+      ],
+      "difficulty": "easy",
+      "tag": "answerable",
+      "topic": "job_references"
+    },
+    {
+      "id": "q4",
+      "question": "How much advance notice should employees give when resigning?",
+      "ground_truth": "At least two weeks' advance notice.",
+      "ground_truth_contexts": [
+        "Should you decide to leave your employment with us, we ask that you provide us with at least two weeks' advance notice."
+      ],
+      "difficulty": "easy",
+      "tag": "answerable",
+      "topic": "resignation"
+    },
+    {
+      "id": "q5",
+      "question": "What is the rule for handling cash bills larger than $20?",
+      "ground_truth": "All bills greater than $20.00 must be placed underneath the cash register drawer.",
+      "ground_truth_contexts": [
+        "All bills greater than $20.00 will be placed underneath your cash register drawer."
+      ],
+      "difficulty": "medium",
+      "tag": "answerable",
+      "topic": "cash_handling"
+    },
+    {
+      "id": "q6",
+      "question": "Who qualifies for the Blue Cross Blue Shield medical insurance offered by the company?",
+      "ground_truth": "Management and crew who meet the ACA full-time definition of averaging 30 hours or more per week during the Standard Measurement Period of November to October.",
+      "ground_truth_contexts": [
+        "For those Management and crew that meet the criteria of full time according to the ACA definition of averaging 30 hours or more during the Standard Measurement Period of November to October, we are proud to offer Blue Cross, Blue Shield Medical Insurance at a shared cost that meets the ACA guidelines."
+      ],
+      "difficulty": "medium",
+      "tag": "answerable",
+      "topic": "benefits"
+    },
+    {
+      "id": "q7",
+      "question": "Is harassing surveillance of another employee considered prohibited workplace conduct?",
+      "ground_truth": "Yes. Harassing surveillance of another Company employee, combined with making a credible threat with intent to place the other person in reasonable fear of their safety, is listed as prohibited conduct.",
+      "ground_truth_contexts": [
+        "Harassing surveillance of another Company employee and making a credible threat with intent to place the other person in reasonable fear of his or her safety"
+      ],
+      "difficulty": "medium",
+      "tag": "answerable",
+      "topic": "conduct"
+    },
+    {
+      "id": "q8",
+      "question": "What are the B-REDS and T-REDS thresholds and what happens if a cashier exceeds them?",
+      "ground_truth": "Documentation will be issued if a cashier exceeds 3% B-REDS or 0.50% T-REDS. Managers review and track these numbers at the end of each shift.",
+      "ground_truth_contexts": [
+        "Managers review and track B-REDS and T-REDS at the end of your shift. Documentation will be issued if you exceed 3% B-REDS and .50% T-REDS."
+      ],
+      "difficulty": "hard",
+      "tag": "answerable",
+      "topic": "cash_handling"
+    },
+    {
+      "id": "q9",
+      "question": "What is the company's paid vacation policy for part-time crew members?",
+      "ground_truth": "Not found in provided policies.",
+      "ground_truth_contexts": [],
+      "difficulty": "adversarial",
+      "tag": "unanswerable",
+      "topic": "out_of_scope"
+    },
+    {
+      "id": "q10",
+      "question": "What is the dress code requirement regarding hair length for male crew members?",
+      "ground_truth": "Not found in provided policies.",
+      "ground_truth_contexts": [],
+      "difficulty": "adversarial",
+      "tag": "unanswerable",
+      "topic": "out_of_scope"
+    }
+  ]
+}
